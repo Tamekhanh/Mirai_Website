@@ -12,11 +12,59 @@ const DEFAULT_VRM_PATH = `${import.meta.env.BASE_URL}Mirai_Assets/Mirai_Model_ca
 
 const DEFAULT_IMG_BACKGROUND = `${import.meta.env.BASE_URL}Mirai_Assets/room.png`
 
+const DEFAULT_BLEND_SHAPE_PRESETS = [
+	'neutral',
+	'happy',
+	'angry',
+	'sad',
+	'relaxed',
+	'surprised',
+	'aa',
+	'ih',
+	'ou',
+	'ee',
+	'oh',
+	'blink',
+	'blinkLeft',
+	'blinkRight',
+]
+
+const clamp01 = (value) => Math.min(1, Math.max(0, value))
+
+const getAvailableBlendShapes = (expressionManager) => {
+	if (!expressionManager) {
+		return []
+	}
+
+	const names = new Set()
+
+	if (expressionManager.expressionMap && typeof expressionManager.expressionMap === 'object') {
+		Object.keys(expressionManager.expressionMap).forEach((name) => names.add(name))
+	}
+
+	if (expressionManager._expressionMap && typeof expressionManager._expressionMap === 'object') {
+		Object.keys(expressionManager._expressionMap).forEach((name) => names.add(name))
+	}
+
+	if (Array.isArray(expressionManager.expressions)) {
+		expressionManager.expressions.forEach((expression) => {
+			if (expression?.expressionName) {
+				names.add(expression.expressionName)
+			}
+		})
+	}
+
+	DEFAULT_BLEND_SHAPE_PRESETS.forEach((name) => names.add(name))
+
+	return Array.from(names)
+}
+
 function Mirai_chat() {
 	const canvasRef = useRef(null)
 	const sceneRef = useRef(null)
 	const currentVrmRef = useRef(null)
 	const loadVersionRef = useRef(0)
+	const vrmLastProgressRef = useRef(-1)
 	const timerRef = useRef(new THREE.Timer())
 	const frameIdRef = useRef(null)
 	const loaderHideTimeoutRef = useRef(null)
@@ -34,6 +82,20 @@ function Mirai_chat() {
 	const [vrmLoadingProgress, setVrmLoadingProgress] = useState(0)
 	const [vrmLoadingError, setVrmLoadingError] = useState(false)
 	const [shouldShowVrmLoader, setShouldShowVrmLoader] = useState(true)
+	const [showBlendShapeDebug, setShowBlendShapeDebug] = useState(false)
+	const [availableBlendShapes, setAvailableBlendShapes] = useState([])
+	const [blendShapeValues, setBlendShapeValues] = useState({})
+
+	const applyBlendShapeValues = (nextValues) => {
+		const expressionManager = currentVrmRef.current?.expressionManager
+		if (!expressionManager || typeof expressionManager.setValue !== 'function') {
+			return
+		}
+
+		Object.entries(nextValues).forEach(([name, value]) => {
+			expressionManager.setValue(name, clamp01(value))
+		})
+	}
 
 	// Check server status on mount and periodically
 	useEffect(() => {
@@ -48,12 +110,13 @@ function Mirai_chat() {
 		return () => clearInterval(statusInterval)
 	}, [])
 
-	const loadVrmFromUrl = async ({ url, label, revokeAfterLoad = false }) => {
+	const loadVrmFromUrl = async ({ url, revokeAfterLoad = false }) => {
 		if (!sceneRef.current) {
 			return
 		}
 
 		const loadVersion = ++loadVersionRef.current
+		vrmLastProgressRef.current = -1
 		setVrmLoadingProgress(0)
 		setVrmLoadingError(false)
 		setShouldShowVrmLoader(true)
@@ -65,19 +128,25 @@ function Mirai_chat() {
 		try {
 			const loader = new GLTFLoader()
 			loader.register((parser) => new VRMLoaderPlugin(parser))
-			
+
 			// Track loading progress
 			const gltf = await new Promise((resolve, reject) => {
 				loader.load(
 					url,
 					(gltf) => {
-						setVrmLoadingProgress(100)
+						if (vrmLastProgressRef.current !== 100) {
+							vrmLastProgressRef.current = 100
+							setVrmLoadingProgress(100)
+						}
 						resolve(gltf)
 					},
 					(progress) => {
 						const total = progress.total || 1
 						const progressPercent = Math.round((progress.loaded / total) * 90)
-						setVrmLoadingProgress(progressPercent)
+						if (progressPercent !== vrmLastProgressRef.current) {
+							vrmLastProgressRef.current = progressPercent
+							setVrmLoadingProgress(progressPercent)
+						}
 					},
 					(error) => {
 						reject(error)
@@ -111,8 +180,19 @@ function Mirai_chat() {
 
 			sceneRef.current.add(vrm.scene)
 			currentVrmRef.current = vrm
+
+			const names = getAvailableBlendShapes(vrm.expressionManager)
+			setAvailableBlendShapes(names)
+			setBlendShapeValues((previousValues) => {
+				const nextValues = {}
+				names.forEach((name) => {
+					nextValues[name] = clamp01(previousValues[name] ?? 0)
+				})
+				return nextValues
+			})
+
 			setVrmLoadingProgress(100)
-			
+
 			// Hide loader after successful load
 			loaderHideTimeoutRef.current = window.setTimeout(() => {
 				setShouldShowVrmLoader(false)
@@ -121,6 +201,8 @@ function Mirai_chat() {
 		} catch (error) {
 			console.error(error)
 			setVrmLoadingError(true)
+			setAvailableBlendShapes([])
+			setBlendShapeValues({})
 		} finally {
 			if (revokeAfterLoad) {
 				URL.revokeObjectURL(url)
@@ -131,7 +213,7 @@ function Mirai_chat() {
 	const handleRetryVrmLoad = () => {
 		setVrmLoadingError(false)
 		setVrmLoadingProgress(0)
-		void loadVrmFromUrl({ url: DEFAULT_VRM_PATH, label: 'Mirai_Model_casual.vrm' })
+		void loadVrmFromUrl({ url: DEFAULT_VRM_PATH })
 	}
 
 	useEffect(() => {
@@ -212,7 +294,7 @@ function Mirai_chat() {
 		}
 
 		animate()
-		void loadVrmFromUrl({ url: DEFAULT_VRM_PATH, label: 'Mirai_Model_casual.vrm' })
+		void loadVrmFromUrl({ url: DEFAULT_VRM_PATH })
 
 		return () => {
 			loadVersionRef.current += 1
@@ -261,7 +343,7 @@ function Mirai_chat() {
 		}
 
 		const url = URL.createObjectURL(file)
-		await loadVrmFromUrl({ url, label: file.name, revokeAfterLoad: true })
+		await loadVrmFromUrl({ url, revokeAfterLoad: true })
 		event.target.value = ''
 	}
 
@@ -334,6 +416,34 @@ function Mirai_chat() {
 		}
 	}
 
+	const handleBlendShapeChange = (name, value) => {
+		const nextValue = clamp01(value)
+		setBlendShapeValues((previousValues) => {
+			if ((previousValues[name] ?? 0) === nextValue) {
+				return previousValues
+			}
+
+			return {
+				...previousValues,
+				[name]: nextValue,
+			}
+		})
+
+		const expressionManager = currentVrmRef.current?.expressionManager
+		if (expressionManager && typeof expressionManager.setValue === 'function') {
+			expressionManager.setValue(name, nextValue)
+		}
+	}
+
+	const handleResetBlendShapes = () => {
+		const nextValues = {}
+		availableBlendShapes.forEach((name) => {
+			nextValues[name] = 0
+		})
+		setBlendShapeValues(nextValues)
+		applyBlendShapeValues(nextValues)
+	}
+
 	return (
 		<div className="chat-container">
 			<VRMLoadingScreen
@@ -346,6 +456,43 @@ function Mirai_chat() {
 			<div className='chat-viewer-panel'>
 				<div className="chat-canvas-wrap">
 					<canvas ref={canvasRef} className="chat-canvas" />
+					<div className='blendshape-debug'>
+						<div className='blendshape-debug-header'>
+							<button
+								type='button'
+								className='blendshape-debug-toggle'
+								onClick={() => setShowBlendShapeDebug((prev) => !prev)}
+							>
+								{showBlendShapeDebug ? 'Hide Blend Shape Debug' : 'Show Blend Shape Debug'}
+							</button>
+							{showBlendShapeDebug && (
+								<button type='button' className='blendshape-debug-reset' onClick={handleResetBlendShapes}>
+									Reset
+								</button>
+							)}
+						</div>
+						{showBlendShapeDebug && (
+							<div className='blendshape-debug-body'>
+								{availableBlendShapes.length === 0 && (
+									<div className='blendshape-debug-empty'>No blend shapes detected.</div>
+								)}
+								{availableBlendShapes.map((name) => (
+									<label key={name} className='blendshape-debug-row'>
+										<span>{name}</span>
+										<input
+											type='range'
+											min='0'
+											max='1'
+											step='0.01'
+											value={blendShapeValues[name] ?? 0}
+											onChange={(event) => handleBlendShapeChange(name, Number(event.target.value))}
+										/>
+										<span>{(blendShapeValues[name] ?? 0).toFixed(2)}</span>
+									</label>
+								))}
+							</div>
+						)}
+					</div>
 				</div>
 			</div>
 			<div className='chat-box'>

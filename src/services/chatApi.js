@@ -6,7 +6,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 const DEFAULT_TIMEOUT = 300000 // 5 minutes
 const HEALTH_CHECK_TIMEOUT = 5000 // 5 seconds
-const HEALTH_CHECK_CACHE_DURATION = 30000 // Cache health check for 30 seconds
+const HEALTH_CHECK_CACHE_DURATION = 60000 // Cache health check for 60 seconds
 
 let lastHealthCheckTime = 0
 let lastHealthCheckStatus = false
@@ -112,33 +112,4 @@ export const checkServerStatus = async () => {
 export const forceHealthCheck = async () => {
   lastHealthCheckTime = 0 // Clear cache
   return checkServerStatus()
-}
-
-/**
- * Get chat history from server
- * @returns {Promise<Array>} - Array of message objects
- */
-export const getChatHistory = async () => {
-  try {
-    const response = await fetchWithTimeout(
-      `${API_BASE_URL}/history`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-      DEFAULT_TIMEOUT
-    )
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch history: ${response.status}`)
-    }
-
-    const data = await response.json()
-    return data.messages || []
-  } catch (error) {
-    console.error('Failed to get chat history:', error)
-    return []
-  }
 }
