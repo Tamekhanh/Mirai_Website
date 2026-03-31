@@ -30,7 +30,7 @@ const fetchWithTimeout = (url, options, timeout = DEFAULT_TIMEOUT) => {
 /**
  * Send a message to the server and get a response
  * @param {string} message - User message to send
- * @returns {Promise<string>} - Server response message
+ * @returns {Promise<{text: string, audio: string | null, lipSync: any, sources: string[]}>}
  */
 export const sendMessage = async (message) => {
   try {
@@ -63,8 +63,13 @@ export const sendMessage = async (message) => {
       console.warn('Unexpected response format:', data)
       throw new Error('Server response does not contain expected fields (reply, message, response, text, or content)')
     }
-    
-    return reply
+
+    return {
+      text: reply,
+      audio: typeof data.audio === 'string' ? data.audio : null,
+      lipSync: data.lipSync ?? data.blendShapes ?? data.blendshape ?? null,
+      sources: Array.isArray(data.sources) ? data.sources : [],
+    }
   } catch (error) {
     console.error('Chat API Error:', error)
     throw error

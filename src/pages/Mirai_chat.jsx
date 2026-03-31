@@ -347,6 +347,84 @@ function Mirai_chat() {
 		event.target.value = ''
 	}
 
+	const resolveAudioSrc = (audioData) => {
+		if (typeof audioData !== 'string' || !audioData.trim()) {
+			return null
+		}
+
+		if (/^(https?:|data:|blob:)/i.test(audioData)) {
+			return audioData
+		}
+
+		return `data:audio/mpeg;base64,${audioData}`
+	}
+
+	const resolveLipSyncData = async (lipSyncPayload) => {
+		if (!lipSyncPayload) {
+			return null
+		}
+
+		if (typeof lipSyncPayload === 'string') {
+			const response = await fetch(lipSyncPayload)
+			if (!response.ok) {
+				throw new Error(`Failed to load blend shape file: ${response.status}`)
+			}
+			return response.json()
+		}
+
+		return lipSyncPayload
+	}
+
+	const playAudioWithLipSync = async (audioData, lipSyncPayload) => {
+		const audioSrc = resolveAudioSrc(audioData)
+		if (!audioSrc) {
+			return
+		}
+
+		const audio = new Audio(audioSrc)
+		let lipSyncData = null
+
+		try {
+			lipSyncData = await resolveLipSyncData(lipSyncPayload)
+		} catch (error) {
+			console.error('Cannot load blend shape file:', error)
+		}
+
+		const cues = Array.isArray(lipSyncData?.mouthCues) ? lipSyncData.mouthCues : []
+
+		if (cues.length > 0) {
+			const updateLipSync = () => {
+				if (audio.paused || audio.ended) {
+					handleResetBlendShapes()
+					return
+				}
+
+				const currentTime = audio.currentTime
+				const activeCue = cues.find((cue) => currentTime >= cue.start && currentTime <= cue.end)
+
+				if (activeCue?.value) {
+					Object.entries(activeCue.value).forEach(([shape, amount]) => {
+						handleBlendShapeChange(shape, amount)
+					})
+				} else {
+					handleResetBlendShapes()
+				}
+
+				requestAnimationFrame(updateLipSync)
+			}
+
+			audio.addEventListener('play', () => {
+				requestAnimationFrame(updateLipSync)
+			})
+		}
+
+		audio.addEventListener('ended', handleResetBlendShapes)
+		audio.play().catch((error) => {
+			console.error('Cannot play audio:', error)
+			handleResetBlendShapes()
+		})
+	}
+
 	const handleSendMessage = async () => {
 		const nextText = draftMessage.trim()
 		if (!nextText || isLoading) {
@@ -379,12 +457,16 @@ function Mirai_chat() {
 			const serverMessage = {
 				id: loadingMessageId,
 				sender: 'mirai',
-				text: reply,
+				text: reply.text,
 			}
 
 			setMessages((prevMessages) =>
 				prevMessages.map((msg) => (msg.id === loadingMessageId ? serverMessage : msg))
 			)
+
+			if (reply.audio) {
+				void playAudioWithLipSync(reply.audio, reply.lipSync)
+			}
 		} catch (error) {
 			console.error('Failed to send message:', error)
 			const errorMessageText =

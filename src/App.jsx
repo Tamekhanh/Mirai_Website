@@ -23,7 +23,7 @@ function App() {
       <section id="main">
         <div className="container">
           <div className="header">
-            <h1 className="title">MiraAI</h1>
+            <h1 className="title">MirAI</h1>
             <div className="nav">
               <button onClick={() => handleClick(1)} className="nav-btn">Chat</button>
               <button onClick={() => handleClick(2)} className="nav-btn">About</button>
