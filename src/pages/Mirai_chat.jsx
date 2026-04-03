@@ -3,8 +3,14 @@ import './Mirai_chat.css'
 
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm'
+import {
+	VRMAnimationLoaderPlugin,
+	VRMLookAtQuaternionProxy,
+	createVRMAnimationClip,
+} from '@pixiv/three-vrm-animation'
 import { sendMessage, checkServerStatus } from '../services/chatApi'
 import VRMLoadingScreen from '../components/VRMLoadingScreen'
 
@@ -30,6 +36,32 @@ const DEFAULT_BLEND_SHAPE_PRESETS = [
 ]
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value))
+
+const LIP_SHAPE_ALIASES = {
+	A: ['aa', 'A'],
+	E: ['ee', 'E'],
+	I: ['ih', 'I'],
+	O: ['oh', 'O'],
+	U: ['ou', 'U'],
+	aa: ['aa', 'A'],
+	ee: ['ee', 'E'],
+	ih: ['ih', 'I'],
+	oh: ['oh', 'O'],
+	ou: ['ou', 'U'],
+}
+
+const AnimationURLs = {
+	Welcome: `${import.meta.env.BASE_URL}Mirai_Assets/Animation/VRMA_02.vrma`,
+	Idle: `${import.meta.env.BASE_URL}Mirai_Assets/Animation/Idle.fbx`,
+}
+
+const AnimationWithExpression = {
+	Welcome: ['happy', AnimationURLs.Welcome],
+	Idle: ['', AnimationURLs.Idle],
+	IdleFallback: ['', AnimationURLs.Welcome],
+}
+
+const EMOTION_EXPRESSIONS = ['neutral', 'happy', 'angry', 'sad', 'relaxed', 'surprised']
 
 const getAvailableBlendShapes = (expressionManager) => {
 	if (!expressionManager) {
@@ -68,6 +100,11 @@ function Mirai_chat() {
 	const timerRef = useRef(new THREE.Timer())
 	const frameIdRef = useRef(null)
 	const loaderHideTimeoutRef = useRef(null)
+	const animationMixerRef = useRef(null)
+	const currentAnimationActionRef = useRef(null)
+	const finishedAnimationListenerRef = useRef(null)
+	const idleTransitionTimeoutRef = useRef(null)
+	const animationPlayVersionRef = useRef(0)
 	const messagesEndRef = useRef(null)
 	const [messages, setMessages] = useState([
 		{
@@ -95,6 +132,247 @@ function Mirai_chat() {
 		Object.entries(nextValues).forEach(([name, value]) => {
 			expressionManager.setValue(name, clamp01(value))
 		})
+	}
+
+	const resetAnimationState = () => {
+		animationPlayVersionRef.current += 1
+
+		if (idleTransitionTimeoutRef.current) {
+			window.clearTimeout(idleTransitionTimeoutRef.current)
+			idleTransitionTimeoutRef.current = null
+		}
+
+		const mixer = animationMixerRef.current
+		if (mixer) {
+			if (finishedAnimationListenerRef.current) {
+				mixer.removeEventListener('finished', finishedAnimationListenerRef.current)
+				finishedAnimationListenerRef.current = null
+			}
+
+			if (currentAnimationActionRef.current) {
+				currentAnimationActionRef.current.stop()
+				currentAnimationActionRef.current = null
+			}
+
+			mixer.stopAllAction()
+			if (currentVrmRef.current?.scene) {
+				mixer.uncacheRoot(currentVrmRef.current.scene)
+			}
+		}
+
+		animationMixerRef.current = null
+	}
+
+	const setAnimationExpression = (expressionName) => {
+		const expressionManager = currentVrmRef.current?.expressionManager
+		if (!expressionManager || typeof expressionManager.setValue !== 'function') {
+			return
+		}
+
+		const availableShapes = new Set(getAvailableBlendShapes(expressionManager))
+		const nextValues = {}
+
+		EMOTION_EXPRESSIONS.forEach((name) => {
+			if (availableShapes.has(name)) {
+				nextValues[name] = 0
+			}
+		})
+
+		if (expressionName && availableShapes.has(expressionName)) {
+			nextValues[expressionName] = 0.5
+		}
+
+		if (Object.keys(nextValues).length === 0) {
+			return
+		}
+
+		setBlendShapeValues((previousValues) => ({
+			...previousValues,
+			...nextValues,
+		}))
+		applyBlendShapeValues(nextValues)
+	}
+
+	const loadAnimationClip = async (animationUrl, vrm) => {
+		const lowerCaseUrl = animationUrl.toLowerCase()
+
+		const ensureLookAtQuaternionProxy = () => {
+			if (!vrm?.lookAt || !vrm?.scene) {
+				return
+			}
+
+			const existingProxy = vrm.scene.children.find(
+				(child) => child instanceof VRMLookAtQuaternionProxy
+			)
+
+			if (existingProxy) {
+				if (!existingProxy.name) {
+					existingProxy.name = 'VRMLookAtQuaternionProxy'
+				}
+				return
+			}
+
+			const lookAtProxy = new VRMLookAtQuaternionProxy(vrm.lookAt)
+			lookAtProxy.name = 'VRMLookAtQuaternionProxy'
+			vrm.scene.add(lookAtProxy)
+		}
+
+		if (lowerCaseUrl.endsWith('.vrma')) {
+			const loader = new GLTFLoader()
+			loader.register((parser) => new VRMAnimationLoaderPlugin(parser))
+
+			const gltf = await new Promise((resolve, reject) => {
+				loader.load(animationUrl, resolve, undefined, reject)
+			})
+
+			const vrmAnimation = gltf.userData?.vrmAnimations?.[0]
+			if (!vrmAnimation) {
+				throw new Error(`No VRM animation data found in ${animationUrl}`)
+			}
+
+			ensureLookAtQuaternionProxy()
+
+			return createVRMAnimationClip(vrmAnimation, vrm)
+		}
+
+		if (lowerCaseUrl.endsWith('.fbx')) {
+			const loader = new FBXLoader()
+			const object3d = await new Promise((resolve, reject) => {
+				loader.load(animationUrl, resolve, undefined, reject)
+			})
+
+			const rawClip = object3d.animations?.[0]
+			if (!rawClip) {
+				throw new Error(`No animation clip found in ${animationUrl}`)
+			}
+
+			const vrmNodeNames = new Set()
+			vrm.scene.traverse((node) => {
+				if (node.name) {
+					vrmNodeNames.add(node.name)
+				}
+			})
+
+			const compatibleTracks = rawClip.tracks.filter((track) => {
+				const targetNodeName = track.name.split('.')[0]
+				return vrmNodeNames.has(targetNodeName)
+			})
+
+			if (compatibleTracks.length === 0) {
+				throw new Error(`FBX clip is not compatible with this VRM rig: ${animationUrl}`)
+			}
+
+			return new THREE.AnimationClip(rawClip.name || 'fbx_clip', rawClip.duration, compatibleTracks)
+		}
+
+		throw new Error(`Unsupported animation format: ${animationUrl}`)
+	}
+
+	const playAnimationWithExpression = async (animationName, options = {}) => {
+		const { skipIdleFallback = false } = options
+		const animationConfig = AnimationWithExpression[animationName]
+		if (!animationConfig) {
+			return
+		}
+
+		const [expressionName, animationUrl] = animationConfig
+		setAnimationExpression(expressionName)
+
+		const vrm = currentVrmRef.current
+		if (!vrm?.scene) {
+			return
+		}
+
+		const playVersion = ++animationPlayVersionRef.current
+
+		if (!animationMixerRef.current || animationMixerRef.current.getRoot() !== vrm.scene) {
+			animationMixerRef.current = new THREE.AnimationMixer(vrm.scene)
+		}
+
+		const mixer = animationMixerRef.current
+
+		if (finishedAnimationListenerRef.current) {
+			mixer.removeEventListener('finished', finishedAnimationListenerRef.current)
+			finishedAnimationListenerRef.current = null
+		}
+
+		if (currentAnimationActionRef.current) {
+			currentAnimationActionRef.current.stop()
+			currentAnimationActionRef.current = null
+		}
+
+		try {
+			const clip = await loadAnimationClip(animationUrl, vrm)
+			if (playVersion !== animationPlayVersionRef.current || currentVrmRef.current !== vrm) {
+				return
+			}
+
+			const playableClip = clip.clone()
+			playableClip.resetDuration()
+
+			const action = mixer.clipAction(playableClip)
+			action.reset()
+			action.enabled = true
+			action.paused = false
+			action.timeScale = 1
+			action.setEffectiveWeight(1)
+
+			const isIdleAnimation = animationName === 'Idle' || animationName === 'IdleFallback'
+			action.setLoop(isIdleAnimation ? THREE.LoopRepeat : THREE.LoopOnce, isIdleAnimation ? Infinity : 1)
+			action.clampWhenFinished = !isIdleAnimation
+			action.play()
+			currentAnimationActionRef.current = action
+
+			if (idleTransitionTimeoutRef.current) {
+				window.clearTimeout(idleTransitionTimeoutRef.current)
+				idleTransitionTimeoutRef.current = null
+			}
+
+			if (!isIdleAnimation) {
+				const moveToIdle = () => {
+					if (playVersion !== animationPlayVersionRef.current || currentVrmRef.current !== vrm) {
+						return
+					}
+
+					void playAnimationWithExpression('Idle')
+				}
+
+				const clipDurationMs = Math.max(action.getClip().duration * 1000, 100)
+				idleTransitionTimeoutRef.current = window.setTimeout(() => {
+					idleTransitionTimeoutRef.current = null
+					moveToIdle()
+				}, clipDurationMs + 50)
+
+				const handleFinished = (event) => {
+					if (event.action !== action) {
+						return
+					}
+
+					mixer.removeEventListener('finished', handleFinished)
+					if (finishedAnimationListenerRef.current === handleFinished) {
+						finishedAnimationListenerRef.current = null
+					}
+
+					if (idleTransitionTimeoutRef.current) {
+						window.clearTimeout(idleTransitionTimeoutRef.current)
+						idleTransitionTimeoutRef.current = null
+					}
+
+					moveToIdle()
+				}
+
+				finishedAnimationListenerRef.current = handleFinished
+				mixer.addEventListener('finished', handleFinished)
+			}
+		} catch (error) {
+			if (animationName === 'Idle' && !skipIdleFallback) {
+				console.warn('Idle.fbx is incompatible. Falling back to VRMA idle loop.')
+				void playAnimationWithExpression('IdleFallback', { skipIdleFallback: true })
+				return
+			}
+
+			console.error(`Cannot play animation \"${animationName}\":`, error)
+		}
 	}
 
 	// Check server status on mount and periodically
@@ -159,6 +437,7 @@ function Mirai_chat() {
 			}
 
 			if (currentVrmRef.current) {
+				resetAnimationState()
 				sceneRef.current.remove(currentVrmRef.current.scene)
 				VRMUtils.deepDispose(currentVrmRef.current.scene)
 				currentVrmRef.current = null
@@ -190,6 +469,7 @@ function Mirai_chat() {
 				})
 				return nextValues
 			})
+			void playAnimationWithExpression('Welcome')
 
 			setVrmLoadingProgress(100)
 
@@ -281,9 +561,20 @@ function Mirai_chat() {
 
 		updateSize()
 		window.addEventListener('resize', updateSize)
+		timerRef.current.connect(window.document)
+		timerRef.current.reset()
 
 		const animate = () => {
-			const delta = timerRef.current.getDelta()
+			timerRef.current.update()
+			const delta = Math.min(timerRef.current.getDelta(), 0.1)
+			if (animationMixerRef.current) {
+				animationMixerRef.current.update(delta)
+			}
+
+			if (currentVrmRef.current?.humanoid) {
+				currentVrmRef.current.humanoid.update()
+			}
+
 			if (currentVrmRef.current) {
 				currentVrmRef.current.update(delta)
 			}
@@ -304,6 +595,7 @@ function Mirai_chat() {
 			}
 
 			if (currentVrmRef.current) {
+				resetAnimationState()
 				scene.remove(currentVrmRef.current.scene)
 				VRMUtils.deepDispose(currentVrmRef.current.scene)
 				currentVrmRef.current = null
@@ -313,6 +605,7 @@ function Mirai_chat() {
 			if (backgroundTexture) {
 				backgroundTexture.dispose()
 			}
+			timerRef.current.dispose()
 			renderer.dispose()
 		}
 	}, [])
@@ -391,6 +684,30 @@ function Mirai_chat() {
 		}
 
 		const cues = Array.isArray(lipSyncData?.mouthCues) ? lipSyncData.mouthCues : []
+		const availableShapesSet = new Set(availableBlendShapes)
+		const lipShapeKeys = Object.keys(LIP_SHAPE_ALIASES)
+
+		const resolveExpressionName = (shapeName) => {
+			const aliases = LIP_SHAPE_ALIASES[shapeName] || [shapeName]
+			const matchedName = aliases.find((candidate) => availableShapesSet.has(candidate))
+			return matchedName || aliases[0]
+		}
+
+		const getCueFrameValues = (cueValue) => {
+			const frameValues = {}
+
+			lipShapeKeys.forEach((shapeName) => {
+				frameValues[resolveExpressionName(shapeName)] = 0
+			})
+
+			Object.entries(cueValue || {}).forEach(([shape, amount]) => {
+				const expressionName = resolveExpressionName(shape)
+				const current = frameValues[expressionName] ?? 0
+				frameValues[expressionName] = Math.max(current, clamp01(Number(amount) || 0))
+			})
+
+			return frameValues
+		}
 
 		if (cues.length > 0) {
 			const updateLipSync = () => {
@@ -400,10 +717,11 @@ function Mirai_chat() {
 				}
 
 				const currentTime = audio.currentTime
-				const activeCue = cues.find((cue) => currentTime >= cue.start && currentTime <= cue.end)
+				const activeCue = cues.find((cue) => currentTime >= cue.start && currentTime < cue.end)
 
 				if (activeCue?.value) {
-					Object.entries(activeCue.value).forEach(([shape, amount]) => {
+					const frameValues = getCueFrameValues(activeCue.value)
+					Object.entries(frameValues).forEach(([shape, amount]) => {
 						handleBlendShapeChange(shape, amount)
 					})
 				} else {
