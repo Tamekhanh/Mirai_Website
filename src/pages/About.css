@@ -1,6 +1,232 @@
-.about-container {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.about-page {
+  position: relative;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  gap: 1.5rem;
   width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: clamp(1rem, 4vw, 2rem);
+  color: #e2e8f0;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 32%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 24%),
+    linear-gradient(180deg, #020617 0%, #0f172a 100%);
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.about-hero,
+.about-section,
+.about-card,
+.about-note {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 50px rgba(2, 6, 23, 0.32);
+}
+
+.about-hero {
+  border-radius: 1.5rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.about-eyebrow,
+.about-card-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #38bdf8;
+}
+
+.about-hero h1,
+.about-section h2,
+.about-card h2 {
+  margin: 0;
+  color: #f8fafc;
+}
+
+.about-hero h1 {
+  max-width: 14ch;
+  font-size: clamp(2.3rem, 4vw, 4.5rem);
+  line-height: 0.96;
+}
+
+.about-lead {
+  max-width: 68ch;
+  margin: 1rem 0 0;
+  font-size: clamp(0.95rem, 1.5vw, 1.02rem);
+  line-height: 1.7;
+  color: #cbd5e1;
+}
+
+.about-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.about-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(2.4rem, 5vw, 2.75rem);
+  padding: 0.75rem clamp(1rem, 2vw, 1.5rem);
+  border-radius: 9999px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.about-button:hover {
+  transform: translateY(-1px);
+}
+
+.about-button-primary {
+  color: #020617;
+  background: linear-gradient(135deg, #67e8f9, #38bdf8);
+}
+
+.about-button-secondary {
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.about-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+.about-card,
+.about-section,
+.about-note {
+  border-radius: 1.25rem;
+}
+
+.about-card {
+  padding: 1.25rem;
+}
+
+.about-card p,
+.about-stack-item p,
+.about-note p,
+.about-note li,
+.about-section li {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.65;
+}
+
+.about-card h2 {
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+}
+
+.about-list,
+.about-steps {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.about-section {
+  padding: 1.25rem;
+}
+
+.about-section-header {
+  margin-bottom: 1rem;
+}
+
+.about-section h2 {
+  font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+.about-stack {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.about-stack-item {
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(2, 6, 23, 0.4);
+}
+
+.about-stack-item span {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.about-inline-code {
+  display: inline-block;
+  padding: 0.12rem 0.4rem;
+  border-radius: 0.45rem;
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  font-size: 0.95em;
+}
+
+.about-section-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.about-note {
+  padding: 1.25rem;
+}
+
+@media (max-width: 1024px) {
+  .about-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .about-grid,
+  .about-stack,
+  .about-section-split {
+    grid-template-columns: 1fr;
+  }
+
+  .about-hero h1 {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .about-page {
+    gap: 1rem;
+  }
+
+  .about-hero {
+    padding: 1.25rem;
+  }
+
+  .about-card,
+  .about-section,
+  .about-note {
+    padding: 1rem;
+  }
+
+  .about-actions {
+    gap: 0.5rem;
+  }
 }
