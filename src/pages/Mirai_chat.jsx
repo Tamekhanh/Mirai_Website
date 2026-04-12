@@ -91,6 +91,21 @@ const getAvailableBlendShapes = (expressionManager) => {
 	return Array.from(names)
 }
 
+const stabilizeVrmMeshes = (vrm) => {
+	if (!vrm?.scene) {
+		return
+	}
+
+	vrm.scene.traverse((node) => {
+		if (!node?.isMesh) {
+			return
+		}
+
+		// Skinned meshes in animated avatars can be incorrectly frustum-culled.
+		node.frustumCulled = false
+	})
+}
+
 function Mirai_chat() {
 	const canvasRef = useRef(null)
 	const sceneRef = useRef(null)
@@ -100,6 +115,7 @@ function Mirai_chat() {
 	const timerRef = useRef(new THREE.Timer())
 	const frameIdRef = useRef(null)
 	const loaderHideTimeoutRef = useRef(null)
+	const activeAudioRef = useRef(null)
 	const animationMixerRef = useRef(null)
 	const currentAnimationActionRef = useRef(null)
 	const finishedAnimationListenerRef = useRef(null)
@@ -122,6 +138,7 @@ function Mirai_chat() {
 	const [showBlendShapeDebug, setShowBlendShapeDebug] = useState(false)
 	const [availableBlendShapes, setAvailableBlendShapes] = useState([])
 	const [blendShapeValues, setBlendShapeValues] = useState({})
+	const [isAudioMuted, setIsAudioMuted] = useState(false)
 
 	const applyBlendShapeValues = (nextValues) => {
 		const expressionManager = currentVrmRef.current?.expressionManager
@@ -456,6 +473,7 @@ function Mirai_chat() {
 			VRMUtils.rotateVRM0(vrm)
 			vrm.scene.rotation.y = 0
 			vrm.scene.position.set(0, 0.2, 0)
+			stabilizeVrmMeshes(vrm)
 
 			sceneRef.current.add(vrm.scene)
 			currentVrmRef.current = vrm
@@ -620,8 +638,19 @@ function Mirai_chat() {
 				window.clearTimeout(loaderHideTimeoutRef.current)
 				loaderHideTimeoutRef.current = null
 			}
+
+			if (activeAudioRef.current) {
+				activeAudioRef.current.pause()
+				activeAudioRef.current = null
+			}
 		}
 	}, [])
+
+	useEffect(() => {
+		if (activeAudioRef.current) {
+			activeAudioRef.current.muted = isAudioMuted
+		}
+	}, [isAudioMuted])
 
 	const handleImport = async (event) => {
 		const file = event.target.files?.[0]
@@ -674,7 +703,14 @@ function Mirai_chat() {
 			return
 		}
 
+		if (activeAudioRef.current) {
+			activeAudioRef.current.pause()
+			activeAudioRef.current = null
+		}
+
 		const audio = new Audio(audioSrc)
+		audio.muted = isAudioMuted
+		activeAudioRef.current = audio
 		let lipSyncData = null
 
 		try {
@@ -737,8 +773,16 @@ function Mirai_chat() {
 		}
 
 		audio.addEventListener('ended', handleResetBlendShapes)
+		audio.addEventListener('ended', () => {
+			if (activeAudioRef.current === audio) {
+				activeAudioRef.current = null
+			}
+		})
 		audio.play().catch((error) => {
 			console.error('Cannot play audio:', error)
+			if (activeAudioRef.current === audio) {
+				activeAudioRef.current = null
+			}
 			handleResetBlendShapes()
 		})
 	}
@@ -898,9 +942,23 @@ function Mirai_chat() {
 			<div className='chat-box'>
 				<div className='title-chat-box'>
 					<div className='chat'>Chat</div>
-					<div style={{ display: 'flex', alignItems: 'center' }}>
+					<div className='title-chat-controls'>
+						<button
+							type='button'
+							className='mute-slide'
+							aria-label={isAudioMuted ? 'Unmute Mirai voice' : 'Mute Mirai voice'}
+							aria-pressed={isAudioMuted}
+							onClick={() => setIsAudioMuted((prev) => !prev)}
+						>
+							<span className={`mute-slide-track ${isAudioMuted ? 'is-muted' : 'is-unmuted'}`}>
+								<span className='mute-slide-thumb' />
+							</span>
+							<span className='mute-slide-label'>{isAudioMuted ? 'Muted' : 'Sound On'}</span>
+						</button>
+						<div style={{ display: 'flex', alignItems: 'center' }}>
 						<div className='status-color' style={{ backgroundColor: online_status === 'Online' ? '#22c55e' : '#ef4444' }} />
 						<div className='status-text'>{online_status}</div>
+						</div>
 					</div>
 				</div>
 				<div className='chat-messages'>
