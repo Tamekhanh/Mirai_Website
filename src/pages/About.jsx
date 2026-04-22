@@ -84,6 +84,36 @@ function About() {
 				</div>
 			</section>
 
+			<section className="about-section about-qa">
+				<div className='about-section-header'>
+					<p className="about-card-label">Engine use for Mirai 3D Model</p>
+					<h2>Created with VRoid Studio</h2>
+				</div>
+				<div className= "about-vroid">
+					<img className="about-vroid-img" src="/About/Vroid.png" alt="Mirai 3D Model" />
+					<p className= "about-vroid-description">
+						Mirai's visual identity is crafted using VRoid Studio, allowing for a high-fidelity anime aesthetic with full customization. 
+						By leveraging the VRM standard, the model seamlessly integrates with Three.js, enabling real-time animations, expressive blend-shapes, and fluid lip-syncing that bring the character to life in the browser.
+						The VRM format also supports efficient model loading and rendering, ensuring that Mirai can deliver a smooth and engaging user experience while maintaining a rich visual presence.
+					</p>
+				</div>
+			</section>
+
+			<section className="about-section AI-model">
+				<div className='about-section-header'>
+					<p className="about-card-label">AI Model</p>
+					<h2>Using Llama 3 8B - Q4 K M</h2>
+				</div>
+				<div className= "about-AI-model">
+					<img className="about-AI-model-img" src="/About/LLama38b.png" alt="Llama 3 8B" />
+					<p className= "about-AI-model-description">
+						The intelligence behind Mirai is powered by Llama 3 8B, optimized with Q4_K_M quantization. 
+						This specific configuration strikes the perfect balance between cognitive reasoning and inference speed, ensuring that Mirai can maintain contextually aware, natural conversations while remaining efficient enough for scalable deployment.
+						
+					</p>
+				</div>
+			</section>
+
 			<section id="deploy" className="about-section about-section-split">
 				<div>
 					<p className="about-card-label">Deployment</p>
