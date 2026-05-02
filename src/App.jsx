@@ -3,14 +3,16 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
-import Mirai_chat from './pages/Mirai_chat.jsx'
-import About from './pages/About.jsx'
+import Mirai_chat from './pages/Mirai_chat/Mirai_chat.jsx'
+import About from './pages/About/About.jsx'
+import MusicGame from './pages/MusicGame/MusicGame.jsx'
 
 function App() {
   const [count, setCount] = useState(0)
   const page = {
     1: <Mirai_chat />,
-    2: <About />
+    2: <About />,
+    3: <MusicGame />
   }
   const [currentpage, setCurrentpage] = useState(1)
 
@@ -27,6 +29,7 @@ function App() {
             <div className="nav">
               <button onClick={() => handleClick(1)} className="nav-btn">Chat</button>
               <button onClick={() => handleClick(2)} className="nav-btn">About</button>
+              <button onClick={() => handleClick(3)} className="nav-btn">Music Game</button>
             </div>
           </div>
           <div className="layout">

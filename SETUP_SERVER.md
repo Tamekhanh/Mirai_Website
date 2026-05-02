@@ -10,6 +10,7 @@ Create a `.env.local` file in the project root (copy from `.env.example`):
 
 ```
 VITE_API_URL=http://localhost:3000/api
+VITE_MIRAI_MAX_TOKENS=255
 ```
 
 Replace `http://localhost:3000/api` with your actual backend server URL.
@@ -25,9 +26,12 @@ Sends a user message and returns Mirai's response.
 ```json
 {
   "message": "Hello!",
+  "max_tokens": 255,
   "timestamp": "2026-03-30T10:30:00Z"
 }
 ```
+
+`max_tokens` is sent by the frontend on every chat request so the backend can cap Mirai output length.
 
 **Response:**
 ```json

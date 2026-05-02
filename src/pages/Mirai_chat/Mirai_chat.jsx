@@ -11,8 +11,8 @@ import {
 	VRMLookAtQuaternionProxy,
 	createVRMAnimationClip,
 } from '@pixiv/three-vrm-animation'
-import { sendMessage, checkServerStatus } from '../services/chatApi'
-import VRMLoadingScreen from '../components/VRMLoadingScreen'
+import { sendMessage, checkServerStatus } from '../../services/chatApi'
+import VRMLoadingScreen from '../../components/VRMLoadingScreen'
 
 const DEFAULT_VRM_PATH = `${import.meta.env.BASE_URL}Mirai_Assets/Mirai_Model_casual.vrm`
 

@@ -1,0 +1,481 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.game-container {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-family: 'Arial', sans-serif;
+    position: relative;
+    overflow: visible;
+    min-height: 0;
+}
+
+/* Start Screen */
+.start-screen {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    width: 100%;
+    height: 100%;
+}
+
+.start-title {
+    font-size: 3.5rem;
+    text-shadow: 0 0 20px #ff007f;
+    color: #ff007f;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        text-shadow: 0 0 20px #ff007f;
+    }
+    50% {
+        text-shadow: 0 0 40px #ff007f;
+    }
+}
+
+.start-description {
+    font-size: 1.2rem;
+    text-align: center;
+    color: #aaa;
+    line-height: 1.8;
+}
+
+.play-button {
+    padding: 20px 60px;
+    font-size: 2rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, #ff007f, #ff4490);
+    border: 3px solid #ff00ff;
+    border-radius: 15px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 30px #ff007f77;
+    text-transform: uppercase;
+}
+
+.play-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 50px #ff007f;
+    background: linear-gradient(135deg, #ff4490, #ff007f);
+}
+
+.play-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 0 20px #ff007f;
+}
+
+/* Game Header */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 20px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.game-header h1 {
+    margin: 0;
+    font-size: 2rem;
+    text-shadow: 0 0 10px #ff007f;
+    color: #ff007f;
+}
+
+.stop-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, #ff4444, #ff6666);
+    border: 2px solid #ff0000;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 15px #ff444477;
+}
+
+.stop-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px #ff4444;
+}
+
+.stop-button:active {
+    transform: translateY(0);
+}
+
+.game-container h1 {
+    margin-bottom: 20px;
+    font-size: 2.5rem;
+    text-shadow: 0 0 10px #ff007f;
+    color: #ff007f;
+}
+
+.score-info {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.score-info div {
+    padding: 10px 20px;
+    background: rgba(255, 0, 127, 0.2);
+    border: 2px solid #ff007f;
+    border-radius: 8px;
+}
+
+.game-area {
+    position: relative;
+    width: 320px;
+    height: 600px;
+    background: #0f3460;
+    border: 4px solid #ff007f;
+    border-radius: 10px;
+    box-shadow: 0 0 30px #ff007f77, inset 0 0 20px rgba(255, 0, 127, 0.1);
+    overflow: hidden;
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+}
+
+/* Các làn đường */
+.game-area::before,
+.game-area::after {
+    content: '';
+    position: absolute;
+    width: 1px;
+    height: 100%;
+    background: rgba(255, 0, 127, 0.3);
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+}
+
+/* Nút nhịp điệu rơi xuống */
+.note {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid #00ffff;
+    background: rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 15px #00ffff;
+    transition: all 0.1s ease;
+    pointer-events: none;
+}
+
+.note.lane-0 {
+    left: 20px;
+}
+
+.note.lane-1 {
+    right: 20px;
+}
+
+.note.hit {
+    background: rgba(0, 255, 0, 0.6);
+    border-color: #00ff00;
+    box-shadow: 0 0 20px #00ff00;
+    animation: hitAnimation 0.3s ease-out;
+}
+
+@keyframes hitAnimation {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Vùng ấn nút */
+.hit-zone {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(to top, rgba(200, 50, 200, 0.3), transparent);
+    border-top: 3px dashed #c832c8;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.hit-line {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 3px;
+    background: #ff00ff;
+    box-shadow: 0 0 10px #ff00ff;
+}
+
+/* Nút bấm dưới cùng */
+.buttons-container {
+    display: flex;
+    gap: 60px;
+    margin-top: 30px;
+    z-index: 10;
+}
+
+.game-button {
+    width: 120px;
+    height: 50px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, #ff007f, #ff4490);
+    border: 3px solid #ff00ff;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    box-shadow: 0 0 20px #ff007f77;
+    text-transform: uppercase;
+}
+
+.game-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 30px #ff007f, 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.game-button:active {
+    transform: translateY(0);
+    box-shadow: 0 0 15px #ff007f;
+    background: linear-gradient(135deg, #ff4490, #ff007f);
+}
+
+.controls {
+    margin-top: 20px;
+    font-size: 1rem;
+    color: #aaa;
+    text-align: center;
+}
+
+.key {
+    font-weight: bold;
+    color: #ff007f;
+    padding: 2px 6px;
+    background: rgba(255, 0, 127, 0.2);
+    border-radius: 4px;
+}
+
+/* Phản hồi khi hit */
+.feedback {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ff007f;
+    text-shadow: 0 0 20px #ff007f;
+    pointer-events: none;
+    animation: feedbackFade 0.5s ease-out;
+    z-index: 100;
+}
+
+@keyframes feedbackFade {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -80%) scale(1.2);
+    }
+}
+
+.score-info {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.score-info div {
+    padding: 10px 20px;
+    background: rgba(255, 0, 127, 0.2);
+    border: 2px solid #ff007f;
+    border-radius: 8px;
+}
+
+.game-area {
+    position: relative;
+    width: 320px;
+    height: 600px;
+    background: #0f3460;
+    border: 4px solid #ff007f;
+    border-radius: 10px;
+    box-shadow: 0 0 30px #ff007f77, inset 0 0 20px rgba(255, 0, 127, 0.1);
+    overflow: hidden;
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+}
+
+/* Các làn đường */
+.game-area::before,
+.game-area::after {
+    content: '';
+    position: absolute;
+    width: 1px;
+    height: 100%;
+    background: rgba(255, 0, 127, 0.3);
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+}
+
+/* Nút nhịp điệu rơi xuống */
+.note {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid #00ffff;
+    background: rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 15px #00ffff;
+    transition: all 0.1s ease;
+    pointer-events: none;
+}
+
+.note.lane-0 {
+    left: 20px;
+}
+
+.note.lane-1 {
+    right: 20px;
+}
+
+.note.hit {
+    background: rgba(0, 255, 0, 0.6);
+    border-color: #00ff00;
+    box-shadow: 0 0 20px #00ff00;
+    animation: hitAnimation 0.3s ease-out;
+}
+
+@keyframes hitAnimation {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Vùng ấn nút */
+.hit-zone {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(to top, rgba(200, 50, 200, 0.3), transparent);
+    border-top: 3px dashed #c832c8;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.hit-line {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 3px;
+    background: #ff00ff;
+    box-shadow: 0 0 10px #ff00ff;
+}
+
+/* Nút bấm dưới cùng */
+.buttons-container {
+    display: flex;
+    gap: 60px;
+    margin-top: 30px;
+    z-index: 10;
+}
+
+.game-button {
+    width: 120px;
+    height: 50px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, #ff007f, #ff4490);
+    border: 3px solid #ff00ff;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    box-shadow: 0 0 20px #ff007f77;
+    text-transform: uppercase;
+}
+
+.game-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 30px #ff007f, 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.game-button:active {
+    transform: translateY(0);
+    box-shadow: 0 0 15px #ff007f;
+    background: linear-gradient(135deg, #ff4490, #ff007f);
+}
+
+.controls {
+    margin-top: 20px;
+    font-size: 1rem;
+    color: #aaa;
+    text-align: center;
+}
+
+.key {
+    font-weight: bold;
+    color: #ff007f;
+    padding: 2px 6px;
+    background: rgba(255, 0, 127, 0.2);
+    border-radius: 4px;
+}
+
+/* Phản hồi khi hit */
+.feedback {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ff007f;
+    text-shadow: 0 0 20px #ff007f;
+    pointer-events: none;
+    animation: feedbackFade 0.5s ease-out;
+    z-index: 100;
+}
+
+@keyframes feedbackFade {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -80%) scale(1.2);
+    }
+}
