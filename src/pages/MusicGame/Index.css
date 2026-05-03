@@ -1,0 +1,295 @@
+:root {
+    --neon-cyan: #84e7ff;
+    --neon-pink: #ff78b4;
+    --neon-yellow: #f0ff8a;
+    --dark-bg: #06080f;
+    --card-bg: rgba(15, 20, 35, 0.8);
+    --glass-border: rgba(132, 231, 255, 0.2);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.music-game-index {
+    width: 100%;
+    height: 100vh;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+    background: var(--dark-bg);
+    color: #f8fbff;
+    overflow-y: auto;
+    position: relative;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Background Effects */
+.bg-glow {
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    filter: blur(120px);
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.3;
+}
+.top-left {
+    top: -100px;
+    left: -100px;
+    background: var(--neon-pink);
+}
+.bottom-right {
+    bottom: -100px;
+    right: -100px;
+    background: var(--neon-cyan);
+}
+
+.music-game-index__panel {
+    position: relative;
+    z-index: 1;
+    width: min(1200px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+}
+
+/* Hero Section */
+.music-game-index__hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+}
+
+.hero-text {
+    display: grid;
+    gap: 12px;
+}
+
+.music-game-index__eyebrow {
+    margin: 0;
+    font-size: 0.9rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--neon-cyan);
+    font-weight: 600;
+}
+
+.music-game-index__hero h1 {
+    margin: 0;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 900;
+    line-height: 1;
+    background: linear-gradient(to right, #fff, var(--neon-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.music-game-index__lead {
+    margin: 0;
+    max-width: 50ch;
+    font-size: 1.1rem;
+    color: rgba(241, 246, 255, 0.6);
+    line-height: 1.6;
+}
+
+.hero-decoration {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.deco-circle {
+    width: 100%;
+    height: 100%;
+    border: 2px solid var(--neon-cyan);
+    border-radius: 50%;
+    animation: rotateCircle 10s linear infinite;
+    box-shadow: 0 0 20px var(--neon-cyan);
+}
+
+@keyframes rotateCircle {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Grid & Cards */
+.music-game-index__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.stage-card {
+    background: var(--card-bg);
+    border-radius: 24px;
+    border: 1px solid var(--glass-border);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(10px);
+}
+
+.stage-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(132, 231, 255, 0.2);
+}
+
+/* Visual Section */
+.stage-card__visual {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+}
+
+.stage-card__cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.stage-card:hover .stage-card__cover {
+    transform: scale(1.1);
+}
+
+.stage-card__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent 40%, rgba(6, 8, 15, 0.8));
+    display: flex;
+    justify-content: flex-end;
+    padding: 15px;
+}
+
+.stage-card__difficulty {
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    font-size: 0.75rem;
+    font-weight: 700;
+    backdrop-filter: blur(4px);
+}
+
+.stage-card__play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: all 0.3s ease;
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: none;
+    background: var(--neon-cyan);
+    color: #000;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 2;
+}
+
+.stage-card:hover .stage-card__play-btn {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.play-icon {
+    font-size: 1.2rem;
+}
+
+/* Content Section */
+.stage-card__content {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stage-card__title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stage-card__id {
+    font-size: 0.7rem;
+    color: var(--neon-cyan);
+    letter-spacing: 0.1em;
+    font-weight: 700;
+}
+
+.stage-card h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 800;
+}
+
+.stage-card__description {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(241, 246, 255, 0.5);
+    line-height: 1.5;
+    height: 2.7em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.stage-card__footer {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.stat-pill {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.stat-pill span {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: rgba(241, 246, 255, 0.4);
+    margin-bottom: 2px;
+}
+
+.stat-pill strong {
+    font-size: 0.9rem;
+    color: #fff;
+}
+
+@media (max-width: 768px) {
+    .music-game-index {
+        padding: 20px;
+    }
+    .music-game-index__hero {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .hero-decoration {
+        display: none;
+    }
+    .music-game-index__grid {
+        grid-template-columns: 1fr;
+    }
+}

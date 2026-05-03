@@ -1,481 +1,398 @@
+:root {
+    --primary-neon: #00f2ff;
+    --secondary-neon: #bc13fe;
+    --accent-neon: #f0ff8a;
+    --danger-neon: #ff0055;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --dark-bg: #05070a;
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-.game-container {
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+.music-game-page {
+    width: 100vw;
+    height: 100vh;
+    background: var(--dark-bg);
     color: white;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    overflow: hidden;
     position: relative;
-    overflow: visible;
-    min-height: 0;
+    background: radial-gradient(circle at 50% -20%, #1a1a3a 0%, var(--dark-bg) 70%);
 }
 
-/* Start Screen */
-.start-screen {
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.music-start-screen {
+    height: 100%;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 40px;
+    padding: 20px;
+}
+
+.start-card {
+    max-width: 500px;
     width: 100%;
-    height: 100%;
-}
-
-.start-title {
-    font-size: 3.5rem;
-    text-shadow: 0 0 20px #ff007f;
-    color: #ff007f;
-    animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        text-shadow: 0 0 20px #ff007f;
-    }
-    50% {
-        text-shadow: 0 0 40px #ff007f;
-    }
-}
-
-.start-description {
-    font-size: 1.2rem;
+    padding: 40px;
     text-align: center;
-    color: #aaa;
-    line-height: 1.8;
+    animation: fadeIn 0.8s ease-out;
 }
 
-.play-button {
-    padding: 20px 60px;
-    font-size: 2rem;
-    font-weight: bold;
-    background: linear-gradient(135deg, #ff007f, #ff4490);
-    border: 3px solid #ff00ff;
-    border-radius: 15px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 30px #ff007f77;
+.eyebrow {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--primary-neon);
+    margin-bottom: 12px;
+}
+
+.glitch-text {
+    font-size: 3rem;
+    font-weight: 900;
+    margin-bottom: 16px;
+    position: relative;
     text-transform: uppercase;
 }
 
-.play-button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 50px #ff007f;
-    background: linear-gradient(135deg, #ff4490, #ff007f);
+.description {
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 32px;
+    line-height: 1.6;
 }
 
-.play-button:active {
-    transform: scale(0.95);
-    box-shadow: 0 0 20px #ff007f;
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
 }
 
-/* Game Header */
+.stat-item {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-item span { font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; }
+.stat-item strong { font-size: 1.1rem; color: #fff; }
+
+.action-group {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-primary {
+    flex: 2;
+    padding: 16px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(45deg, var(--primary-neon), var(--secondary-neon));
+    color: #000;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-primary:hover { transform: scale(1.05); filter: brightness(1.2); box-shadow: 0 0 20px var(--primary-neon); }
+
+.btn-secondary {
+    flex: 1;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: transparent;
+    color: white;
+    cursor: pointer;
+}
+
+.game-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 20px 40px;
+    gap: 20px;
+}
+
 .game-header {
     display: flex;
     justify-content: space-between;
+    align-items: flex-end;
+}
+
+.track-info h2 { font-size: 2rem; font-weight: 800; }
+.artist { color: rgba(255, 255, 255, 0.5); }
+
+.game-hud {
+    display: grid;
+    grid-template-columns: 200px 200px 1fr;
+    gap: 20px;
+}
+
+.hud-item {
+    padding: 15px 20px;
+    border-radius: 16px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.hud-item .label { font-size: 0.7rem; text-transform: uppercase; color: rgba(255, 255, 255, 0.4); }
+.hud-item .value { font-size: 1.5rem; font-weight: 800; }
+.combo-box { text-align: center; position: relative; }
+.combo-box .best { position: absolute; top: 5px; right: 10px; font-size: 0.6rem; opacity: 0.6; }
+
+.progress-container {
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-neon), var(--accent-neon));
+    transition: width 0.1s linear;
+}
+
+.time-text { font-size: 0.75rem; color: rgba(255,255,255,0.5); text-align: center; }
+
+.game-stage {
+    position: relative;
+    flex: 1;
+    max-width: 500px;
+    margin: 0 auto;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 32px;
+    border: 1px solid var(--glass-border);
+    overflow: hidden;
+}
+
+.lane {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    transition: background 0.1s;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    width: 100%;
-    padding: 20px;
-    position: absolute;
-    top: 0;
-    left: 0;
+    pointer-events: none;
 }
 
-.game-header h1 {
-    margin: 0;
-    font-size: 2rem;
-    text-shadow: 0 0 10px #ff007f;
-    color: #ff007f;
+.lane-0 { left: 0; border-right: 1px solid rgba(255,255,255,0.05); }
+.lane-1 { right: 0; }
+
+.lane.active {
+    background: linear-gradient(to bottom, transparent, rgba(0, 242, 255, 0.1));
 }
 
-.stop-button {
-    padding: 10px 20px;
-    font-size: 1rem;
-    font-weight: bold;
-    background: linear-gradient(135deg, #ff4444, #ff6666);
-    border: 2px solid #ff0000;
-    border-radius: 8px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 0 15px #ff444477;
-}
-
-.stop-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 25px #ff4444;
-}
-
-.stop-button:active {
-    transform: translateY(0);
-}
-
-.game-container h1 {
-    margin-bottom: 20px;
-    font-size: 2.5rem;
-    text-shadow: 0 0 10px #ff007f;
-    color: #ff007f;
-}
-
-.score-info {
-    display: flex;
-    gap: 40px;
-    margin-bottom: 20px;
+.lane-key {
+    margin-top: 20px;
+    font-weight: 900;
+    opacity: 0.3;
     font-size: 1.2rem;
-    font-weight: bold;
 }
 
-.score-info div {
-    padding: 10px 20px;
-    background: rgba(255, 0, 127, 0.2);
-    border: 2px solid #ff007f;
-    border-radius: 8px;
-}
-
-.game-area {
-    position: relative;
-    width: 320px;
-    height: 600px;
-    background: #0f3460;
-    border: 4px solid #ff007f;
-    border-radius: 10px;
-    box-shadow: 0 0 30px #ff007f77, inset 0 0 20px rgba(255, 0, 127, 0.1);
-    overflow: hidden;
-    display: flex;
-    gap: 10px;
-    padding: 10px;
-}
-
-/* Các làn đường */
-.game-area::before,
-.game-area::after {
-    content: '';
+/* --- Hit Circles (Target) --- */
+.hit-circle {
     position: absolute;
-    width: 1px;
-    height: 100%;
-    background: rgba(255, 0, 127, 0.3);
-    left: 50%;
-    top: 0;
+    bottom: 40px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    z-index: 5;
+    transition: all 0.1s ease;
+    left: 50%; 
     transform: translateX(-50%);
 }
 
-/* Nút nhịp điệu rơi xuống */
-.note {
+
+.hit-circle.lane-0 {
+    border-color: var(--primary-neon);
+    box-shadow: 0 0 20px var(--primary-neon), inset 0 0 10px var(--primary-neon);
+}
+
+.hit-circle.lane-1 {
+    border-color: var(--secondary-neon);
+    box-shadow: 0 0 20px var(--secondary-neon), inset 0 0 10px var(--secondary-neon);
+}
+
+.lane.active .hit-circle {
+    transform: translateX(-50%) scale(0.85);
+    background: rgba(255, 255, 255, 0.2);
+    filter: brightness(1.5);
+}
+
+/* --- Game Notes (Circular) --- */
+.game-note {
     position: absolute;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 3px solid #00ffff;
-    background: rgba(0, 255, 255, 0.3);
-    box-shadow: 0 0 15px #00ffff;
-    transition: all 0.1s ease;
-    pointer-events: none;
-}
-
-.note.lane-0 {
-    left: 20px;
-}
-
-.note.lane-1 {
-    right: 20px;
-}
-
-.note.hit {
-    background: rgba(0, 255, 0, 0.6);
-    border-color: #00ff00;
-    box-shadow: 0 0 20px #00ff00;
-    animation: hitAnimation 0.3s ease-out;
-}
-
-@keyframes hitAnimation {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1.5);
-        opacity: 0;
-    }
-}
-
-/* Vùng ấn nút */
-.hit-zone {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 100px;
-    background: linear-gradient(to top, rgba(200, 50, 200, 0.3), transparent);
-    border-top: 3px dashed #c832c8;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.hit-line {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 3px;
-    background: #ff00ff;
-    box-shadow: 0 0 10px #ff00ff;
-}
-
-/* Nút bấm dưới cùng */
-.buttons-container {
-    display: flex;
-    gap: 60px;
-    margin-top: 30px;
-    z-index: 10;
-}
-
-.game-button {
-    width: 120px;
+    width: 50px;
     height: 50px;
-    font-size: 1.5rem;
-    font-weight: bold;
-    background: linear-gradient(135deg, #ff007f, #ff4490);
-    border: 3px solid #ff00ff;
-    border-radius: 10px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.1s ease;
-    box-shadow: 0 0 20px #ff007f77;
-    text-transform: uppercase;
-}
-
-.game-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0 30px #ff007f, 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.game-button:active {
-    transform: translateY(0);
-    box-shadow: 0 0 15px #ff007f;
-    background: linear-gradient(135deg, #ff4490, #ff007f);
-}
-
-.controls {
-    margin-top: 20px;
-    font-size: 1rem;
-    color: #aaa;
-    text-align: center;
-}
-
-.key {
-    font-weight: bold;
-    color: #ff007f;
-    padding: 2px 6px;
-    background: rgba(255, 0, 127, 0.2);
-    border-radius: 4px;
-}
-
-/* Phản hồi khi hit */
-.feedback {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 2rem;
-    font-weight: bold;
-    color: #ff007f;
-    text-shadow: 0 0 20px #ff007f;
-    pointer-events: none;
-    animation: feedbackFade 0.5s ease-out;
-    z-index: 100;
-}
-
-@keyframes feedbackFade {
-    0% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(-50%, -80%) scale(1.2);
-    }
-}
-
-.score-info {
+    border-radius: 50%;
+    transform: translateX(-50%); 
+    z-index: 10;
     display: flex;
-    gap: 40px;
-    margin-bottom: 20px;
-    font-size: 1.2rem;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    animation: noteSpawn 0.2s ease-out;
+}
+
+.game-note.lane-0 { 
+    left: 25%;
+    background: linear-gradient(180deg, var(--primary-neon), #00a2ff); 
+}
+.game-note.lane-1 { 
+    left: 75%;
+    background: linear-gradient(180deg, var(--secondary-neon), #8a2be2); 
+}
+
+.game-note.hold {
+    border: 3px solid rgba(255,255,255,0.5);
+    border-radius: 25px; /* Keep hold notes slightly pill-shaped */
+}
+
+.note-lyric {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #000;
+    text-align: center;
+    padding: 0 5px;
+}
+
+.footer-controls {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.key-hint kbd {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: var(--primary-neon);
     font-weight: bold;
 }
 
-.score-info div {
-    padding: 10px 20px;
-    background: rgba(255, 0, 127, 0.2);
-    border: 2px solid #ff007f;
+.btn-secondary-sm, .btn-danger-sm {
+    padding: 8px 16px;
     border-radius: 8px;
-}
-
-.game-area {
-    position: relative;
-    width: 320px;
-    height: 600px;
-    background: #0f3460;
-    border: 4px solid #ff007f;
-    border-radius: 10px;
-    box-shadow: 0 0 30px #ff007f77, inset 0 0 20px rgba(255, 0, 127, 0.1);
-    overflow: hidden;
-    display: flex;
-    gap: 10px;
-    padding: 10px;
-}
-
-/* Các làn đường */
-.game-area::before,
-.game-area::after {
-    content: '';
-    position: absolute;
-    width: 1px;
-    height: 100%;
-    background: rgba(255, 0, 127, 0.3);
-    left: 50%;
-    top: 0;
-    transform: translateX(-50%);
-}
-
-/* Nút nhịp điệu rơi xuống */
-.note {
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 3px solid #00ffff;
-    background: rgba(0, 255, 255, 0.3);
-    box-shadow: 0 0 15px #00ffff;
-    transition: all 0.1s ease;
-    pointer-events: none;
-}
-
-.note.lane-0 {
-    left: 20px;
-}
-
-.note.lane-1 {
-    right: 20px;
-}
-
-.note.hit {
-    background: rgba(0, 255, 0, 0.6);
-    border-color: #00ff00;
-    box-shadow: 0 0 20px #00ff00;
-    animation: hitAnimation 0.3s ease-out;
-}
-
-@keyframes hitAnimation {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1.5);
-        opacity: 0;
-    }
-}
-
-/* Vùng ấn nút */
-.hit-zone {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 100px;
-    background: linear-gradient(to top, rgba(200, 50, 200, 0.3), transparent);
-    border-top: 3px dashed #c832c8;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.hit-line {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 3px;
-    background: #ff00ff;
-    box-shadow: 0 0 10px #ff00ff;
-}
-
-/* Nút bấm dưới cùng */
-.buttons-container {
-    display: flex;
-    gap: 60px;
-    margin-top: 30px;
-    z-index: 10;
-}
-
-.game-button {
-    width: 120px;
-    height: 50px;
-    font-size: 1.5rem;
-    font-weight: bold;
-    background: linear-gradient(135deg, #ff007f, #ff4490);
-    border: 3px solid #ff00ff;
-    border-radius: 10px;
-    color: white;
+    border: none;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.1s ease;
-    box-shadow: 0 0 20px #ff007f77;
-    text-transform: uppercase;
+    margin-left: 10px;
 }
 
-.game-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0 30px #ff007f, 0 5px 15px rgba(0, 0, 0, 0.3);
-}
+.btn-secondary-sm { background: var(--glass-bg); color: white; border: 1px solid var(--glass-border); }
+.btn-danger-sm { background: rgba(255, 0, 85, 0.2); color: var(--danger-neon); border: 1px solid var(--danger-neon); }
 
-.game-button:active {
-    transform: translateY(0);
-    box-shadow: 0 0 15px #ff007f;
-    background: linear-gradient(135deg, #ff4490, #ff007f);
-}
-
-.controls {
-    margin-top: 20px;
-    font-size: 1rem;
-    color: #aaa;
-    text-align: center;
-}
-
-.key {
-    font-weight: bold;
-    color: #ff007f;
-    padding: 2px 6px;
-    background: rgba(255, 0, 127, 0.2);
-    border-radius: 4px;
-}
-
-/* Phản hồi khi hit */
-.feedback {
+.game-feedback {
     position: fixed;
-    top: 50%;
+    top: 40%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 2rem;
-    font-weight: bold;
-    color: #ff007f;
-    text-shadow: 0 0 20px #ff007f;
+    font-size: 4rem;
+    font-weight: 900;
+    font-style: italic;
+    color: white;
+    text-shadow: 0 0 20px var(--primary-neon);
+    z-index: 3000;
     pointer-events: none;
-    animation: feedbackFade 0.5s ease-out;
-    z-index: 100;
+    animation: feedbackPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-@keyframes feedbackFade {
-    0% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(-50%, -80%) scale(1.2);
-    }
+.game-feedback.miss {
+    color: var(--danger-neon);
+    text-shadow: 0 0 20px var(--danger-neon);
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes noteSpawn { from { transform: translateX(-50%) scale(0.5); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+@keyframes feedbackPop {
+    0% { opacity: 0; transform: translate(-50%, -40%) scale(0.5); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+}
+
+.countdown-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    animation: fadeIn 0.3s ease;
+}
+
+.countdown-number {
+    font-size: 12rem;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 0 30px var(--primary-neon), 0 0 60px var(--secondary-neon);
+    animation: countPop 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite;
+}
+
+.countdown-text {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--primary-neon);
+    text-transform: uppercase;
+    letter-spacing: 10px;
+    text-shadow: 0 0 20px var(--primary-neon);
+    animation: pulseText 1.5s ease-in-out infinite;
+}
+
+@keyframes countPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    20% { transform: scale(1.2); opacity: 1; }
+    80% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0; }
+}
+
+@keyframes pulseText {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.05); opacity: 1; }
+}
+
+/* Thêm vào file MusicGame.css */
+
+.game-note.hold {
+    border-radius: 25px;
+    border: 3px solid rgba(255, 255, 255, 0.4);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+/* Khi note hold đang được nhấn giữ thành công */
+.game-note.hold.holding-active {
+    background: white !important;
+    box-shadow: 0 0 30px white;
+    filter: brightness(1.2);
+}
+
+/* Hiệu ứng cho hình tròn khi đang giữ hold */
+.lane.active .hit-circle {
+    transform: translateX(-50%) scale(0.9);
+    background: rgba(255, 255, 255, 0.3);
 }

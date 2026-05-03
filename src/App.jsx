@@ -1,18 +1,14 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
 import './App.css'
 import Mirai_chat from './pages/Mirai_chat/Mirai_chat.jsx'
 import About from './pages/About/About.jsx'
-import MusicGame from './pages/MusicGame/MusicGame.jsx'
+import MusicGameIndex from './pages/MusicGame/Index.jsx'
 
 function App() {
-  const [count, setCount] = useState(0)
   const page = {
     1: <Mirai_chat />,
     2: <About />,
-    3: <MusicGame />
+    3: <MusicGameIndex />
   }
   const [currentpage, setCurrentpage] = useState(1)
 

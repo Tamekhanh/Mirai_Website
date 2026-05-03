@@ -1,0 +1,13 @@
+{
+    "stages": [
+        {
+        "id": 1,
+        "name": "Ripples of Past Reverie",
+        "difficulty": "Easy",
+        "description": "A simple stage to get you started.",
+        "music": "./music/RoPR-stage1.mp3",
+        "beatmap": "./beatmaps/RoPR-stage1.json",
+        "cover": "./img/stage1.png"
+        }
+    ]
+}
