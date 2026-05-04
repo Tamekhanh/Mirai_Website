@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import "./MusicGame.css";
 
+// --- CẤU HÌNH GAME ---
 const GAME_HEIGHT = 600;
 const NOTE_SIZE = 50;
-const APPROACH_TIME = 4000;
+const APPROACH_TIME = 4000; 
+const HIT_LINE_Y = 520;     
 
-// --- TỐI ƯU TIMING (Đã tinh chỉnh để không bị skip note) ---
-const HIT_WINDOW_PERFECT = 60;
-const HIT_WINDOW_GREAT = 120;
-const HIT_WINDOW_GOOD = 300;    // Mở rộng để tránh nhảy nốt khi nốt gần nhau
-const MISS_WINDOW = 400;        // Cho phép note trôi qua vạch hit lâu hơn một chút trước khi tính MISS
+const HIT_WINDOW_PERFECT = 60;  
+const HIT_WINDOW_GREAT = 120;   
+const HIT_WINDOW_GOOD = 180;    
 
 const SPAWN_OFFSET = 100;
-const TRAVEL_DISTANCE = GAME_HEIGHT - 40 - (NOTE_SIZE / 2);
+const TRAVEL_DISTANCE = HIT_LINE_Y - (NOTE_SIZE / 2);
+
+// Tỷ lệ quy đổi: 1ms = bao nhiêu pixel dựa trên APPROACH_TIME
+// (TRAVEL_DISTANCE + SPAWN_OFFSET) / APPROACH_TIME
+const MS_TO_PX = (TRAVEL_DISTANCE + SPAWN_OFFSET) / APPROACH_TIME;
 
 function formatTime(totalMs) {
     const safeTotal = Math.max(0, Math.floor(totalMs));
@@ -112,25 +116,27 @@ function MusicGame({ stage, onBack }) {
         const now = currentTimeRef.current;
         const currentNotes = notesRef.current;
 
-        // TÌM NOTE ĐẦU TIÊN TRONG LÀN (First-Come First-Served)
-        const firstAvailableNoteIdx = currentNotes.findIndex(note =>
-            note.lane === lane &&
-            !note.hit &&
-            !note.missed &&
-            !note.holding &&
-            Math.abs(now - note.time) <= HIT_WINDOW_GOOD
-        );
+        const candidates = currentNotes
+            .map((note, index) => ({ note, index }))
+            .filter(({ note }) => 
+                note.lane === lane && !note.hit && !note.missed && !note.holding && 
+                Math.abs(now - note.time) <= HIT_WINDOW_GOOD
+            );
 
-        if (firstAvailableNoteIdx !== -1) {
-            const note = currentNotes[firstAvailableNoteIdx];
+        if (candidates.length > 0) {
+            const closest = candidates.reduce((prev, curr) => 
+                Math.abs(now - curr.note.time) < Math.abs(now - prev.note.time) ? curr : prev
+            );
+            
+            const { index: targetIdx, note } = closest;
             const delta = Math.abs(now - note.time);
 
             setNotes(prev => {
                 const next = [...prev];
                 if (note.beatType === "hold") {
-                    next[firstAvailableNoteIdx] = { ...next[firstAvailableNoteIdx], holding: true };
+                    next[targetIdx] = { ...next[targetIdx], holding: true };
                 } else {
-                    next[firstAvailableNoteIdx] = { ...next[firstAvailableNoteIdx], hit: true };
+                    next[targetIdx] = { ...next[targetIdx], hit: true };
                 }
                 return next;
             });
@@ -213,10 +219,16 @@ function MusicGame({ stage, onBack }) {
 
                     const endTime = note.time + (note.beatType === "hold" ? note.duration ?? 0 : 0);
 
-                    // MISS: Note chỉ bị tính miss khi trôi qua hẳn vạch hit + MISS_WINDOW
-                    if (now > endTime + MISS_WINDOW) {
+                    if (now > note.time + HIT_WINDOW_GOOD && note.beatType !== "hold") {
                         missedAny = true;
                         return { ...note, missed: true };
+                    }
+
+                    if (note.beatType === "hold" && now > endTime + HIT_WINDOW_GOOD) {
+                        if (!note.holding) {
+                            missedAny = true;
+                            return { ...note, missed: true };
+                        }
                     }
 
                     if (note.holding && !keysPressedRef.current[note.lane]) {
@@ -341,13 +353,23 @@ function MusicGame({ stage, onBack }) {
                             const noteStart = note.time - APPROACH_TIME;
                             const progress = (currentTime - noteStart) / APPROACH_TIME;
 
-                            const noteHeight = note.beatType === "hold"
-                                ? NOTE_SIZE + (note.duration || 0) / 15
-                                : NOTE_SIZE;
-                            const hitPointTop = -SPAWN_OFFSET + progress * (TRAVEL_DISTANCE + SPAWN_OFFSET);
+                            // --- SỬA LỖI VỊ TRÍ HOLD NOTE ---
+                            let noteHeight = NOTE_SIZE;
+                            let actualTop = 0;
+                            
+                            const currentBottom = -SPAWN_OFFSET + progress * (TRAVEL_DISTANCE + SPAWN_OFFSET);
 
-                            const actualTop = hitPointTop - (noteHeight - NOTE_SIZE);
-                            if (actualTop + noteHeight < -SPAWN_OFFSET || actualTop > GAME_HEIGHT) {
+                            if (note.beatType === "hold") {
+                                // Chiều cao nốt Hold tỉ lệ thuận với duration và tốc độ rơi
+                                noteHeight = NOTE_SIZE + (note.duration * MS_TO_PX);
+                                // Vị trí Top = Vị trí Bottom hiện tại - Chiều cao nốt
+                                // Điều này khiến nốt Hold mọc ngược lên trên
+                                actualTop = currentBottom - (noteHeight - NOTE_SIZE);
+                            } else {
+                                actualTop = currentBottom;
+                            }
+
+                            if (actualTop + noteHeight < -SPAWN_OFFSET || actualTop > GAME_HEIGHT + 100) {
                                 return null;
                             }
 
@@ -357,7 +379,8 @@ function MusicGame({ stage, onBack }) {
                                     className={`game-note lane-${note.lane} ${note.beatType === "hold" ? "hold" : ""} ${note.holding ? "holding-active" : ""}`}
                                     style={{
                                         top: `${actualTop}px`,
-                                        height: `${noteHeight}px`
+                                        height: `${noteHeight}px`,
+                                        zIndex: 1000 - note.id 
                                     }}
                                 >
                                     <span className="note-lyric">{note.lyric}</span>
