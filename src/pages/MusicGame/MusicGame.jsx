@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import "./MusicGame.css";
 
-// --- CẤU HÌNH GAME ---
 const GAME_HEIGHT = 600;
 const NOTE_SIZE = 50;
 const APPROACH_TIME = 4000; 
@@ -13,9 +12,6 @@ const HIT_WINDOW_GOOD = 180;
 
 const SPAWN_OFFSET = 100;
 const TRAVEL_DISTANCE = HIT_LINE_Y - (NOTE_SIZE / 2);
-
-// Tỷ lệ quy đổi: 1ms = bao nhiêu pixel dựa trên APPROACH_TIME
-// (TRAVEL_DISTANCE + SPAWN_OFFSET) / APPROACH_TIME
 const MS_TO_PX = (TRAVEL_DISTANCE + SPAWN_OFFSET) / APPROACH_TIME;
 
 function formatTime(totalMs) {
@@ -33,6 +29,7 @@ function MusicGame({ stage, onBack }) {
     const startTimeRef = useRef(0);
     const keysPressedRef = useRef({ 0: false, 1: false });
     const notesRef = useRef([]);
+    const shakeRef = useRef(false);
 
     const [gamePhase, setGamePhase] = useState("IDLE");
     const [countdown, setCountdown] = useState(3);
@@ -43,6 +40,7 @@ function MusicGame({ stage, onBack }) {
     const [feedback, setFeedback] = useState("");
     const [notes, setNotes] = useState([]);
     const [activeLanes, setActiveLanes] = useState({ 0: false, 1: false });
+    const [hitFlash, setHitFlash] = useState({ 0: false, 1: false });
 
     const songNotes = useMemo(() => stage?.beatmapData?.notes ?? [], [stage]);
     const totalSongLength = useMemo(() => {
@@ -50,29 +48,41 @@ function MusicGame({ stage, onBack }) {
         return (lastNote?.time ?? 0) + (lastNote?.duration ?? 1200) + APPROACH_TIME;
     }, [songNotes]);
 
-    useEffect(() => {
-        notesRef.current = notes;
-    }, [notes]);
+    useEffect(() => { notesRef.current = notes; }, [notes]);
+
+    const triggerShake = () => {
+        shakeRef.current = true;
+        setTimeout(() => { shakeRef.current = false; }, 100);
+    };
 
     const resetGame = useCallback(() => {
-        const initialNotes = songNotes.map((note) => ({
-            ...note,
-            lane: note.type === "right" ? 1 : 0,
-            hit: false,
-            missed: false,
-            holding: false,
-        }));
-        setNotes(initialNotes);
+        const processedNotes = [];
+        
+        songNotes.forEach((note) => {
+            if (note.type === "both") {
+                // FIX: Gán ID riêng biệt cho nốt trái và phải để tránh kẹt React Key
+                processedNotes.push({ ...note, id: `${note.id}-L`, lane: 0, hit: false, missed: false, holding: false, mashProgress: 0 });
+                processedNotes.push({ ...note, id: `${note.id}-R`, lane: 1, hit: false, missed: false, holding: false, mashProgress: 0 });
+            } else {
+                processedNotes.push({
+                    ...note,
+                    lane: note.type === "right" ? 1 : (note.type === "left" ? 0 : 2),
+                    hit: false,
+                    missed: false,
+                    holding: false,
+                    mashProgress: 0
+                });
+            }
+        });
+
+        setNotes(processedNotes);
         setGamePhase("IDLE");
         setScore(0);
         setCombo(0);
         setBestCombo(0);
         setCurrentTime(0);
         setFeedback("");
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-        }
+        if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
     }, [songNotes]);
 
     useEffect(() => {
@@ -97,9 +107,7 @@ function MusicGame({ stage, onBack }) {
 
     const startActualGame = async () => {
         setGamePhase("PLAYING");
-        if (audioRef.current) {
-            try { await audioRef.current.play(); } catch (e) { console.error(e); }
-        }
+        if (audioRef.current) { try { await audioRef.current.play(); } catch (e) { console.error(e); } }
     };
 
     const showFeedback = (message) => {
@@ -112,16 +120,19 @@ function MusicGame({ stage, onBack }) {
         if (gamePhase !== "PLAYING") return;
         keysPressedRef.current[lane] = true;
         setActiveLanes(prev => ({ ...prev, [lane]: true }));
+        setHitFlash(prev => ({ ...prev, [lane]: true }));
+        setTimeout(() => setHitFlash(prev => ({ ...prev, [lane]: false })), 100);
 
         const now = currentTimeRef.current;
         const currentNotes = notesRef.current;
 
         const candidates = currentNotes
             .map((note, index) => ({ note, index }))
-            .filter(({ note }) => 
-                note.lane === lane && !note.hit && !note.missed && !note.holding && 
-                Math.abs(now - note.time) <= HIT_WINDOW_GOOD
-            );
+            .filter(({ note }) => {
+                const isCorrectLane = (note.lane === lane) || (note.lane === 2);
+                return isCorrectLane && !note.hit && !note.missed && !note.holding && 
+                       Math.abs(now - note.time) <= HIT_WINDOW_GOOD;
+            });
 
         if (candidates.length > 0) {
             const closest = candidates.reduce((prev, curr) => 
@@ -130,6 +141,24 @@ function MusicGame({ stage, onBack }) {
             
             const { index: targetIdx, note } = closest;
             const delta = Math.abs(now - note.time);
+
+            if (note.beatType === "giant") {
+                setNotes(prev => {
+                    const next = [...prev];
+                    const currentProg = next[targetIdx].mashProgress || 0;
+                    next[targetIdx] = { ...next[targetIdx], mashProgress: Math.min(currentProg + 5, 100) };
+                    return next;
+                });
+                setScore(s => s + 50);
+                setCombo(c => {
+                    const next = c + 1;
+                    setBestCombo(b => Math.max(b, next));
+                    return next;
+                });
+                showFeedback("MASH!");
+                triggerShake();
+                return; 
+            }
 
             setNotes(prev => {
                 const next = [...prev];
@@ -146,7 +175,7 @@ function MusicGame({ stage, onBack }) {
             } else {
                 let rating = "GOOD";
                 let points = 100;
-                if (delta <= HIT_WINDOW_PERFECT) { rating = "PERFECT"; points = 200; }
+                if (delta <= HIT_WINDOW_PERFECT) { rating = "PERFECT"; points = 200; triggerShake(); }
                 else if (delta <= HIT_WINDOW_GREAT) { rating = "GREAT"; points = 150; }
 
                 setScore(s => s + points);
@@ -167,15 +196,16 @@ function MusicGame({ stage, onBack }) {
         keysPressedRef.current[lane] = false;
         setActiveLanes(prev => ({ ...prev, [lane]: false }));
         const now = currentTimeRef.current;
-
         const currentNotes = notesRef.current;
-        const holdIdx = currentNotes.findIndex(n => n.lane === lane && n.holding);
+        const holdIdx = currentNotes.findIndex(n => (n.lane === lane || n.lane === 2) && n.holding);
 
         if (holdIdx === -1) return;
 
         const note = currentNotes[holdIdx];
         const endTime = note.time + (note.duration || 0);
         const delta = Math.abs(now - endTime);
+
+        if (note.lane === 2 && (keysPressedRef.current[0] || keysPressedRef.current[1])) return; 
 
         if (delta <= HIT_WINDOW_GOOD) {
             setNotes(prev => {
@@ -216,19 +246,26 @@ function MusicGame({ stage, onBack }) {
                 let missedAny = false;
                 const next = prev.map(note => {
                     if (note.hit || note.missed) return note;
+                    const endTime = note.time + (note.beatType === "hold" || note.beatType === "giant" ? note.duration ?? 0 : 0);
 
-                    const endTime = note.time + (note.beatType === "hold" ? note.duration ?? 0 : 0);
+                    if (note.beatType === "giant") {
+                        if (now > endTime + HIT_WINDOW_GOOD) {
+                            if (note.mashProgress >= 100) {
+                                setTimeout(() => { setScore(s => s + 1000); showFeedback("GIANT CLEAR!"); }, 0);
+                            }
+                            return { ...note, missed: true };
+                        }
+                        return note;
+                    }
 
                     if (now > note.time + HIT_WINDOW_GOOD && note.beatType !== "hold") {
                         missedAny = true;
                         return { ...note, missed: true };
                     }
 
-                    if (note.beatType === "hold" && now > endTime + HIT_WINDOW_GOOD) {
-                        if (!note.holding) {
-                            missedAny = true;
-                            return { ...note, missed: true };
-                        }
+                    if (note.beatType === "hold" && now > endTime + HIT_WINDOW_GOOD && !note.holding) {
+                        missedAny = true;
+                        return { ...note, missed: true };
                     }
 
                     if (note.holding && !keysPressedRef.current[note.lane]) {
@@ -239,15 +276,11 @@ function MusicGame({ stage, onBack }) {
                     if (note.holding && now > endTime + HIT_WINDOW_GOOD) {
                         return { ...note, holding: false, hit: true };
                     }
-
                     return note;
                 });
 
                 if (missedAny) {
-                    setTimeout(() => {
-                        setCombo(0);
-                        showFeedback("MISS");
-                    }, 0);
+                    setTimeout(() => { setCombo(0); showFeedback("MISS"); }, 0);
                 }
                 return next;
             });
@@ -279,7 +312,7 @@ function MusicGame({ stage, onBack }) {
     const progressRatio = totalSongLength > 0 ? Math.min(currentTime / totalSongLength, 1) : 0;
 
     return (
-        <div className="music-game-page">
+        <div className={`music-game-page ${shakeRef.current ? 'shake' : ''}`}>
             <audio ref={audioRef} src={stage?.musicUrl ?? ""} preload="auto" />
 
             {gamePhase === "IDLE" && (
@@ -328,7 +361,7 @@ function MusicGame({ stage, onBack }) {
                         </div>
                         <div className="hud-item combo-box">
                             <span className="label">Combo</span>
-                            <span className="value">{combo}</span>
+                            <span className={`value combo-text ${combo >= 100 ? 'combo-legendary' : combo >= 50 ? 'combo-epic' : combo >= 10 ? 'combo-rare' : ''}`}>{combo}</span>
                             {combo > 0 && <span className="best">Best: {bestCombo}</span>}
                         </div>
                         <div className="hud-item progress-box">
@@ -342,47 +375,49 @@ function MusicGame({ stage, onBack }) {
                     <div className="game-stage">
                         <div className={`lane lane-0 ${activeLanes[0] ? 'active' : ''}`}>
                             <span className="lane-key">F</span>
-                            <div className="hit-circle lane-0"></div>
+                            <div className={`hit-circle lane-0 ${hitFlash[0] ? 'flash' : ''}`}></div>
                         </div>
                         <div className={`lane lane-1 ${activeLanes[1] ? 'active' : ''}`}>
                             <span className="lane-key">J</span>
-                            <div className="hit-circle lane-1"></div>
+                            <div className={`hit-circle lane-1 ${hitFlash[1] ? 'flash' : ''}`}></div>
                         </div>
 
                         {notes.filter(n => !n.hit && !n.missed).map((note) => {
                             const noteStart = note.time - APPROACH_TIME;
                             const progress = (currentTime - noteStart) / APPROACH_TIME;
 
-                            // --- SỬA LỖI VỊ TRÍ HOLD NOTE ---
                             let noteHeight = NOTE_SIZE;
                             let actualTop = 0;
-                            
                             const currentBottom = -SPAWN_OFFSET + progress * (TRAVEL_DISTANCE + SPAWN_OFFSET);
 
-                            if (note.beatType === "hold") {
-                                // Chiều cao nốt Hold tỉ lệ thuận với duration và tốc độ rơi
+                            if (note.beatType === "hold" || note.beatType === "giant") {
                                 noteHeight = NOTE_SIZE + (note.duration * MS_TO_PX);
-                                // Vị trí Top = Vị trí Bottom hiện tại - Chiều cao nốt
-                                // Điều này khiến nốt Hold mọc ngược lên trên
-                                actualTop = currentBottom - (noteHeight - NOTE_SIZE);
+                                if (note.beatType === "giant" && currentTime >= note.time && currentTime <= note.time + note.duration) {
+                                    actualTop = HIT_LINE_Y - (noteHeight - NOTE_SIZE);
+                                } else {
+                                    actualTop = currentBottom - (noteHeight - NOTE_SIZE);
+                                }
                             } else {
                                 actualTop = currentBottom;
                             }
 
-                            if (actualTop + noteHeight < -SPAWN_OFFSET || actualTop > GAME_HEIGHT + 100) {
-                                return null;
-                            }
+                            if (actualTop + noteHeight < -SPAWN_OFFSET || actualTop > GAME_HEIGHT + 100) return null;
 
                             return (
                                 <div
                                     key={note.id}
-                                    className={`game-note lane-${note.lane} ${note.beatType === "hold" ? "hold" : ""} ${note.holding ? "holding-active" : ""}`}
+                                    className={`game-note lane-${note.lane} ${note.beatType === 'giant' ? 'note-giant' : ''} ${note.beatType === "hold" || note.beatType === "giant" ? "hold" : ''} ${note.holding ? "holding-active" : ""}`}
                                     style={{
                                         top: `${actualTop}px`,
                                         height: `${noteHeight}px`,
-                                        zIndex: 1000 - note.id 
+                                        zIndex: 1000 - (parseInt(note.id) || 0)
                                     }}
                                 >
+                                    {note.beatType === "giant" && (
+                                        <div className="giant-progress-bar">
+                                            <div className="giant-progress-fill" style={{ width: `${note.mashProgress}%` }} />
+                                        </div>
+                                    )}
                                     <span className="note-lyric">{note.lyric}</span>
                                 </div>
                             );
@@ -393,7 +428,11 @@ function MusicGame({ stage, onBack }) {
                     </div>
                 </div>
             )}
-            {feedback && <div className={`game-feedback ${feedback === 'MISS' ? 'miss' : ''}`}>{feedback}</div>}
+            {feedback && (
+                <div className={`game-feedback ${feedback === 'MISS' ? 'miss' : ''} ${combo >= 100 ? 'legendary' : combo >= 50 ? 'epic' : ''}`}>
+                    {feedback}
+                </div>
+            )}
         </div>
     );
 }
