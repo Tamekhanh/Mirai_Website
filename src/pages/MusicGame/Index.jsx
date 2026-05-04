@@ -1,24 +1,23 @@
 import { useState } from "react";
 import "./Index.css";
 import stageData from "../../assets/game/MiraiMusic/stage.json";
-import beatmapData from "../../assets/game/MiraiMusic/beatmaps/RoPR-stage1.json";
-import musicUrl from "../../assets/game/MiraiMusic/music/RoPR-stage1.ogg";
+import beatmapRoPR from "../../assets/game/MiraiMusic/beatmaps/RoPR-stage1.json";
+import beatmapChachihu from "../../assets/game/MiraiMusic/beatmaps/Chachihu-stage2.json";
 import MusicGame from "./MusicGame.jsx";
-import stageCover from "../../assets/game/MiraiMusic/img/stage1.png";
 
 const assetRegistry = {
-	"./beatmaps/RoPR-stage1.json": beatmapData,
-	"./music/RoPR-stage1.mp3": musicUrl,
-	"./music/RoPR-stage1.ogg": musicUrl,
-	"./img/stage1.png": stageCover,
+	beatmaps: {
+		"RoPR-stage1": beatmapRoPR,
+		"Chachihu-stage2": beatmapChachihu,
+	}
 };
 
 function resolveStage(stage) {
 	return {
 		...stage,
-		beatmapData: assetRegistry[stage.beatmap] ?? beatmapData,
-		musicUrl: assetRegistry[stage.music] ?? musicUrl,
-		coverUrl: assetRegistry[stage.cover] ?? stageCover,
+		beatmapData: assetRegistry.beatmaps[stage.beatmap],
+		musicUrl: stage.music,
+		coverUrl: stage.cover,
 	};
 }
 
@@ -54,10 +53,10 @@ function Index() {
 			<div className="music-game-index__panel">
 				<header className="music-game-index__hero">
 					<div className="hero-text">
-						<p className="music-game-index__eyebrow">Mirai Music Experience</p>
+						<p className="music-game-index__eyebrow">Mirai Music Experience Prototype</p>
 						<h1>Song Selection</h1>
 						<p className="music-game-index__lead">
-							Hãy chọn một bản nhạc và chinh phục những nốt nhạc nhịp điệu.
+							Choose a stage to test your rhythm skills! Each stage features a unique track and beatmap. Can you master them all?
 						</p>
 					</div>
 					<div className="hero-decoration">
@@ -77,7 +76,9 @@ function Index() {
 								<div className="stage-card__visual">
 									<img src={stage.coverUrl} alt={stage.name} className="stage-card__cover" />
 									<div className="stage-card__overlay">
-										<span className="stage-card__difficulty">{stage.difficulty}</span>
+										<span className={`stage-card__difficulty stage-card__difficulty-${stage.difficulty.toLowerCase()}`}>
+											{stage.difficulty}
+										</span>
 									</div>
 									<button
 										className="stage-card__play-btn"

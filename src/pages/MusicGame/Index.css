@@ -178,7 +178,11 @@
     font-size: 0.75rem;
     font-weight: 700;
     backdrop-filter: blur(4px);
+    height: fit-content;
 }
+
+.stage-card__difficulty-medium {border-color: rgba(255, 255, 0, 0.8); color: var(--neon-yellow); }
+.stage-card__difficulty-hard {border-color: rgba(255, 0, 0, 0.8); color: var(--neon-pink); }
 
 .stage-card__play-btn {
     position: absolute;

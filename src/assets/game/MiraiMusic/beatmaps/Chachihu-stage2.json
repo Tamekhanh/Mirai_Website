@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "title": "Chachihu - Limbus Company Canto VIII Boss 2 Battle Theme",
+    "artist": "Studio EIM",
+    "bpm": 95,
+    "offset": 1000,
+    "audioPath": "./assets/audio/Chachihu-stage2.ogg"
+  },
+  "notes": [
+    { "id": 1, "time": 1, "type": "left", "beatType": "basic" },
+    { "id": 2, "time": 300, "type": "left", "beatType": "basic"},
+    { "id": 3, "time": 600, "type": "left", "beatType": "basic"},
+    { "id": 4, "time": 1000, "type": "right", "beatType": "hold", "duration": 500 },
+
+    { "id": 5, "time": 8000, "type": "right", "beatType": "basic"},
+    { "id": 6, "time": 8350, "type": "right", "beatType": "hold", "duration": 10000 }
+    
+  ]
+}
