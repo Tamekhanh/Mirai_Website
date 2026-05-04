@@ -363,9 +363,17 @@
 }
 
 .game-note.hold.holding-active {
+    opacity: 1 !important;
     background: white !important;
     box-shadow: 0 0 30px white;
     filter: brightness(1.2);
+}
+
+.game-note.hold {
+    border: 3px solid rgba(255,255,255,0.5);
+    border-radius: 25px;
+    opacity: 0.75; /* Giảm độ đậm để nhìn xuyên qua được */
+    backdrop-filter: blur(2px); /* Tạo hiệu ứng kính mờ cho sang */
 }
 
 /* Both Notes */
@@ -504,4 +512,10 @@
     50% { transform: translateX(-48%) translateY(-2px); }
     75% { transform: translateX(-52%) translateY(-2px); }
     100% { transform: translateX(-50%) translateY(0); }
+}
+
+.game-note:not(.hold) {
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 0 10px rgba(255, 255, 255, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    zIndex: 2000; /* Đảm bảo ưu tiên */
 }

@@ -3,12 +3,12 @@ import "./MusicGame.css";
 
 const GAME_HEIGHT = 600;
 const NOTE_SIZE = 50;
-const APPROACH_TIME = 4000; 
-const HIT_LINE_Y = 520;     
+const APPROACH_TIME = 4000;
+const HIT_LINE_Y = 520;
 
-const HIT_WINDOW_PERFECT = 60;  
-const HIT_WINDOW_GREAT = 120;   
-const HIT_WINDOW_GOOD = 180;    
+const HIT_WINDOW_PERFECT = 60;
+const HIT_WINDOW_GREAT = 120;
+const HIT_WINDOW_GOOD = 180;
 
 const SPAWN_OFFSET = 100;
 const TRAVEL_DISTANCE = HIT_LINE_Y - (NOTE_SIZE / 2);
@@ -57,7 +57,7 @@ function MusicGame({ stage, onBack }) {
 
     const resetGame = useCallback(() => {
         const processedNotes = [];
-        
+
         songNotes.forEach((note) => {
             if (note.type === "both") {
                 // FIX: Gán ID riêng biệt cho nốt trái và phải để tránh kẹt React Key
@@ -130,15 +130,15 @@ function MusicGame({ stage, onBack }) {
             .map((note, index) => ({ note, index }))
             .filter(({ note }) => {
                 const isCorrectLane = (note.lane === lane) || (note.lane === 2);
-                return isCorrectLane && !note.hit && !note.missed && !note.holding && 
-                       Math.abs(now - note.time) <= HIT_WINDOW_GOOD;
+                return isCorrectLane && !note.hit && !note.missed && !note.holding &&
+                    Math.abs(now - note.time) <= HIT_WINDOW_GOOD;
             });
 
         if (candidates.length > 0) {
-            const closest = candidates.reduce((prev, curr) => 
+            const closest = candidates.reduce((prev, curr) =>
                 Math.abs(now - curr.note.time) < Math.abs(now - prev.note.time) ? curr : prev
             );
-            
+
             const { index: targetIdx, note } = closest;
             const delta = Math.abs(now - note.time);
 
@@ -157,7 +157,7 @@ function MusicGame({ stage, onBack }) {
                 });
                 showFeedback("MASH!");
                 triggerShake();
-                return; 
+                return;
             }
 
             setNotes(prev => {
@@ -205,7 +205,7 @@ function MusicGame({ stage, onBack }) {
         const endTime = note.time + (note.duration || 0);
         const delta = Math.abs(now - endTime);
 
-        if (note.lane === 2 && (keysPressedRef.current[0] || keysPressedRef.current[1])) return; 
+        if (note.lane === 2 && (keysPressedRef.current[0] || keysPressedRef.current[1])) return;
 
         if (delta <= HIT_WINDOW_GOOD) {
             setNotes(prev => {
