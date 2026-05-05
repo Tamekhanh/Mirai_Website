@@ -208,7 +208,7 @@
     { "id": 199, "time": 181496, "type": "left", "beatType": "basic" },
     { "id": 200, "time": 182169, "type": "left", "beatType": "basic" },
     { "id": 201, "time": 182850, "type": "left", "beatType": "basic" },
-    { "id": 202, "time": 184186, "type": "left", "beatType": "hold", "duration": 1097 },
+    { "id": 202, "time": 184186, "type": "right", "beatType": "hold", "duration": 1097 },
     { "id": 203, "time": 185666, "type": "left", "beatType": "hold", "duration": 5534 },
     { "id": 204, "time": 186308, "type": "right", "beatType": "basic" },
     { "id": 205, "time": 186970, "type": "right", "beatType": "basic" },
