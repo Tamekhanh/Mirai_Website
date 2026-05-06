@@ -47,7 +47,7 @@ function Index() {
 	return (
 		<div className="music-game-index">
 			{/* Background Decorative Elements */}
-			<div className="bg-glow top-left"></div>
+			{/* <div className="bg-glow top-left"></div>
 			<div className="bg-glow bottom-right"></div>
 
 			<div className="music-game-index__panel">
@@ -114,7 +114,14 @@ function Index() {
 						);
 					})}
 				</div>
-			</div>
+			</div> */}
+
+				<div className="music-game-index__coming-soon">
+					<h2>Coming Soon</h2>
+					<p>We're working hard to bring the music game experience to life. Stay tuned for updates!</p>
+					<p>Some songs are not available yet since copyright restrictions apply.</p>
+				</div>
+
 		</div>
 	);
 }
