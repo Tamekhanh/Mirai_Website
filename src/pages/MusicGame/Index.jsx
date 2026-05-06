@@ -119,7 +119,7 @@ function Index() {
 				<div className="music-game-index__coming-soon">
 					<h2>Coming Soon</h2>
 					<p>We're working hard to bring the music game experience to life. Stay tuned for updates!</p>
-					<p>Some songs are not available yet since copyright restrictions apply.</p>
+					<p>Some songs are not available since copyright restrictions apply.</p>
 				</div>
 
 		</div>
