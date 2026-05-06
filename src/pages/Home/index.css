@@ -1,0 +1,226 @@
+.home-page {
+	position: relative;
+	height: 100%;
+	min-height: 0;
+	overflow: auto;
+	padding: 24px;
+	background:
+		radial-gradient(circle at top left, rgba(110, 231, 255, 0.16), transparent 28%),
+		radial-gradient(circle at bottom right, rgba(255, 181, 83, 0.14), transparent 30%),
+		linear-gradient(180deg, #07111f 0%, #050b14 100%);
+	color: #f5f7fb;
+	box-sizing: border-box;
+}
+
+.home-hero {
+	display: grid;
+	grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.9fr);
+	gap: 24px;
+	align-items: center;
+	min-height: calc(100% - 260px);
+}
+
+.home-copy {
+	max-width: 720px;
+}
+
+.home-eyebrow,
+.home-card-label,
+.home-orbital-label {
+	margin: 0 0 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.2em;
+	font-size: 0.75rem;
+	color: #8dcfff;
+	font-weight: 700;
+}
+
+.home-copy h2 {
+	margin: 0;
+	font-size: clamp(2.5rem, 6vw, 4.9rem);
+	line-height: 0.95;
+	max-width: 10ch;
+}
+
+.home-lead {
+	margin: 20px 0 0;
+	max-width: 58ch;
+	font-size: 1.05rem;
+	line-height: 1.7;
+	color: rgba(245, 247, 251, 0.82);
+}
+
+.home-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-top: 28px;
+}
+
+.home-primary,
+.home-secondary,
+.home-card-button {
+	border: 0;
+	border-radius: 999px;
+	font: inherit;
+	font-weight: 700;
+	cursor: pointer;
+	transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.home-primary,
+.home-secondary {
+	padding: 14px 20px;
+}
+
+.home-primary {
+	background: linear-gradient(135deg, #8dcfff, #5ea9ff);
+	color: #03101f;
+	box-shadow: 0 16px 40px rgba(94, 169, 255, 0.28);
+}
+
+.home-secondary {
+	background: rgba(255, 255, 255, 0.08);
+	color: #f5f7fb;
+	backdrop-filter: blur(12px);
+}
+
+.home-card-button {
+	margin-top: 18px;
+	padding: 12px 16px;
+	background: rgba(141, 207, 255, 0.14);
+	color: #dff4ff;
+	align-self: flex-start;
+}
+
+.home-primary:hover,
+.home-secondary:hover,
+.home-card-button:hover {
+	transform: translateY(-1px);
+}
+
+.home-orbital-card {
+	position: relative;
+	min-height: 380px;
+	display: grid;
+	place-items: center;
+	border-radius: 32px;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	overflow: hidden;
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.home-orbital-ring {
+	position: absolute;
+	border-radius: 999px;
+	border: 1px solid rgba(141, 207, 255, 0.22);
+	animation: home-spin 18s linear infinite;
+}
+
+.home-orbital-ring-large {
+	width: min(78%, 300px);
+	height: min(78%, 300px);
+}
+
+.home-orbital-ring-small {
+	width: min(50%, 180px);
+	height: min(50%, 180px);
+	animation-direction: reverse;
+	animation-duration: 12s;
+}
+
+.home-orbital-core {
+	position: relative;
+	z-index: 1;
+	width: min(78%, 260px);
+	padding: 28px;
+	border-radius: 24px;
+	text-align: center;
+	background: linear-gradient(180deg, rgba(5, 13, 24, 0.88), rgba(7, 17, 31, 0.58));
+	border: 1px solid rgba(255, 255, 255, 0.09);
+	backdrop-filter: blur(18px);
+}
+
+.home-orbital-core strong {
+	display: block;
+	font-size: 2rem;
+	margin-bottom: 8px;
+}
+
+.home-orbital-core p {
+	margin: 0;
+	color: rgba(245, 247, 251, 0.75);
+	line-height: 1.6;
+}
+
+.home-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
+	margin-top: 28px;
+}
+
+.home-card {
+	padding: 20px;
+	border-radius: 24px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	backdrop-filter: blur(16px);
+	box-shadow: 0 16px 50px rgba(0, 0, 0, 0.22);
+}
+
+.home-card h3 {
+	margin: 0;
+	font-size: 1.2rem;
+	color: #ffffff;
+}
+
+.home-card p {
+	margin: 12px 0 0;
+	line-height: 1.65;
+	color: rgba(245, 247, 251, 0.78);
+}
+
+@keyframes home-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (max-width: 960px) {
+	.home-hero {
+		grid-template-columns: 1fr;
+		min-height: auto;
+	}
+
+	.home-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.home-orbital-card {
+		min-height: 320px;
+	}
+}
+
+@media (max-width: 640px) {
+	.home-page {
+		padding: 16px;
+	}
+
+	.home-copy h2 {
+		font-size: clamp(2.2rem, 14vw, 3.5rem);
+	}
+
+	.home-actions {
+		flex-direction: column;
+	}
+
+	.home-primary,
+	.home-secondary {
+		width: 100%;
+	}
+}
