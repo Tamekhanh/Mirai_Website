@@ -1,4 +1,4 @@
-const SPACE_API_BASE_URL = 'https://tamek-mirai.hf.space/api'
+const SPACE_API_BASE_URL = 'https://tamek-mirai.hf.space'
 
 const FORWARDED_HEADERS = ['content-type', 'accept', 'authorization']
 
@@ -36,11 +36,11 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url)
 
-    if (url.pathname === '/api/chat') {
+    if (url.pathname === '/chat' || url.pathname === '/api/chat') {
       return proxyRequest(request, env, '/chat')
     }
 
-    if (url.pathname === '/api/health') {
+    if (url.pathname === '/health' || url.pathname === '/api/health') {
       return proxyRequest(request, env, '/health')
     }
 

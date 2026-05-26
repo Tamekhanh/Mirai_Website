@@ -9,17 +9,17 @@ This guide explains how to connect the Mirai Chat application to your backend se
 Create a `.env.local` file in the project root (copy from `.env.example`):
 
 ```
-VITE_API_URL=http://localhost:3000/api
+VITE_API_URL=http://localhost:3000
 VITE_MIRAI_MAX_TOKENS=255
 ```
 
-Use `VITE_API_URL` only for a non-secret backend override during local development. In production, the frontend should call the same-origin `/api` proxy and the Hugging Face token should live in a Cloudflare Worker secret such as `SPACE_API_KEY`.
+Use `VITE_API_URL` only for a non-secret backend override during local development. In production, the frontend can call the same-origin `/chat` and `/health` routes directly, or go through the Cloudflare Worker proxy if you deploy that path.
 
 ### 2. Backend API Requirements
 
 Your backend must implement the following endpoints:
 
-#### `POST /api/chat`
+#### `POST /chat`
 Sends a user message and returns Mirai's response.
 
 **Request:**
@@ -41,12 +41,12 @@ Sends a user message and returns Mirai's response.
 }
 ```
 
-#### `GET /api/health`
+#### `GET /health`
 Health check endpoint to verify server status.
 
 **Response:** HTTP 200 OK (any content)
 
-#### `GET /api/history`
+#### `GET /history`
 Optional endpoint to fetch chat history.
 
 **Response:**
@@ -78,7 +78,7 @@ Optional endpoint to fetch chat history.
 
 ## Testing
 
-1. Start your backend server on `http://localhost:3000/api` if you are testing locally.
+1. Start your backend server on `http://localhost:3000` if you are testing locally.
 2. Run the Mirai Chat app: `npm run dev`
 3. Open http://localhost:5173 in your browser
 4. Check if the Online/Offline status indicator shows "Online"
@@ -88,11 +88,11 @@ Optional endpoint to fetch chat history.
 
 ### "Offline" status
 - Check if your backend server is running
-- Verify the `VITE_API_URL` in `.env.local` matches your non-secret backend override, or leave it unset to use the default local/prod routing
+- Verify the `VITE_API_URL` in `.env.local` matches your non-secret backend override, or leave it unset to use the default same-origin routing
 - Check browser console for network errors (F12 → Console)
 
 ### Messages not being sent
-- Verify backend is responding to POST requests on `/api/chat`
+- Verify backend is responding to POST requests on `/chat`
 - Check that the response includes a `reply` or `message` field
 - Look for CORS errors in browser console
 
@@ -103,4 +103,4 @@ Optional endpoint to fetch chat history.
 ### Secret key exposure
 - Never put Hugging Face API keys in `VITE_*` variables
 - Store secrets in Cloudflare with `wrangler secret put SPACE_API_KEY`
-- Let the Worker proxy `/api/chat` and `/api/health` to the upstream Space
+- Let the Worker proxy `/chat` and `/health` to the upstream Space

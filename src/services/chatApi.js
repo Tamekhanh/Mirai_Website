@@ -4,15 +4,13 @@
  */
 
 const normalizeApiBaseUrl = (value) => {
-  const fallbackBaseUrl = import.meta.env.DEV ? 'http://localhost:3000' : ''
-  const rawValue = String(value ?? fallbackBaseUrl).trim()
+  const rawValue = String(value ?? '').trim()
 
   if (!rawValue) {
-    return '/api'
+    return ''
   }
 
-  const trimmedValue = rawValue.replace(/\/+$/, '')
-  return trimmedValue.endsWith('/api') ? trimmedValue : `${trimmedValue}/api`
+  return rawValue.replace(/\/+$/, '')
 }
 
 const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL)
