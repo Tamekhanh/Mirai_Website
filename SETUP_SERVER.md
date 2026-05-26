@@ -13,7 +13,7 @@ VITE_API_URL=http://localhost:3000/api
 VITE_MIRAI_MAX_TOKENS=255
 ```
 
-Replace `http://localhost:3000/api` with your actual backend server URL.
+Use `VITE_API_URL` only for a non-secret backend override during local development. In production, the frontend should call the same-origin `/api` proxy and the Hugging Face token should live in a Cloudflare Worker secret such as `SPACE_API_KEY`.
 
 ### 2. Backend API Requirements
 
@@ -78,7 +78,7 @@ Optional endpoint to fetch chat history.
 
 ## Testing
 
-1. Start your backend server on `http://localhost:3000/api`
+1. Start your backend server on `http://localhost:3000/api` if you are testing locally.
 2. Run the Mirai Chat app: `npm run dev`
 3. Open http://localhost:5173 in your browser
 4. Check if the Online/Offline status indicator shows "Online"
@@ -88,7 +88,7 @@ Optional endpoint to fetch chat history.
 
 ### "Offline" status
 - Check if your backend server is running
-- Verify the `VITE_API_URL` in `.env.local` matches your server address
+- Verify the `VITE_API_URL` in `.env.local` matches your non-secret backend override, or leave it unset to use the default local/prod routing
 - Check browser console for network errors (F12 → Console)
 
 ### Messages not being sent
@@ -99,3 +99,8 @@ Optional endpoint to fetch chat history.
 ### Connection refused
 - Make sure your backend server is running
 - Confirm you're using the correct server URL
+
+### Secret key exposure
+- Never put Hugging Face API keys in `VITE_*` variables
+- Store secrets in Cloudflare with `wrangler secret put SPACE_API_KEY`
+- Let the Worker proxy `/api/chat` and `/api/health` to the upstream Space

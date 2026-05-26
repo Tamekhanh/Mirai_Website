@@ -46,8 +46,10 @@ function About() {
 					<p>
 						The frontend talks to <span className="about-inline-code">POST /api/chat</span>,
 						<span className="about-inline-code">GET /api/health</span>, and optionally
-						<span className="about-inline-code">GET /api/history</span> through the configurable
-						<span className="about-inline-code">VITE_API_URL</span> setting.
+						<span className="about-inline-code">GET /api/history</span> through the same-origin
+						<span className="about-inline-code">/api</span> proxy. Any Hugging Face token stays in a
+						Cloudflare Worker secret instead of a client-side <span className="about-inline-code">VITE_</span>
+						variable.
 					</p>
 				</article>
 
@@ -119,10 +121,11 @@ function About() {
 					<p className="about-card-label">Deployment</p>
 					<h2>What needs to be in place before shipping</h2>
 					<ol className="about-steps">
-						<li>Set <span className="about-inline-code">VITE_API_URL</span> to the deployed backend.</li>
+						<li>Deploy the Worker so <span className="about-inline-code">/api/*</span> routes proxy to the Hugging Face Space.</li>
+						<li>Store the upstream token with <span className="about-inline-code">wrangler secret put SPACE_API_KEY</span>.</li>
 						<li>Keep the VRM and animation files under <span className="about-inline-code">public/Mirai_Assets</span>.</li>
 						<li>Build the frontend with <span className="about-inline-code">npm run build</span>.</li>
-						<li>Serve the static output from your chosen host, including Hugging Face Spaces if needed.</li>
+						<li>Serve the static output from your chosen host, including Cloudflare or Hugging Face Spaces.</li>
 					</ol>
 				</div>
 

@@ -3,7 +3,19 @@
  * Handles all communication with the backend server
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const normalizeApiBaseUrl = (value) => {
+  const fallbackBaseUrl = import.meta.env.DEV ? 'http://localhost:3000' : ''
+  const rawValue = String(value ?? fallbackBaseUrl).trim()
+
+  if (!rawValue) {
+    return '/api'
+  }
+
+  const trimmedValue = rawValue.replace(/\/+$/, '')
+  return trimmedValue.endsWith('/api') ? trimmedValue : `${trimmedValue}/api`
+}
+
+const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL)
 const DEFAULT_TIMEOUT = 300000 // 5 minutes
 const HEALTH_CHECK_TIMEOUT = 5000 // 5 seconds
 const HEALTH_CHECK_CACHE_DURATION = 60000 // Cache health check for 60 seconds

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import "./Index.css";
-import stageData from "../../assets/game/MiraiMusic/stage.json";
-import beatmapRoPR from "../../assets/game/MiraiMusic/beatmaps/RoPR-stage1.json";
-import beatmapChachihu from "../../assets/game/MiraiMusic/beatmaps/Chachihu-stage2.json";
+import stageData from "../../../assets/game/MiraiMusic/stage.json";
+import beatmapRoPR from "../../../assets/game/MiraiMusic/beatmaps/RoPR-stage1.json";
+import beatmapChachihu from "../../../assets/game/MiraiMusic/beatmaps/Chachihu-stage2.json";
 import MusicGame from "./MusicGame.jsx";
 
 const assetRegistry = {
