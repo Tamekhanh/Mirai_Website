@@ -10,10 +10,13 @@ Create a `.env.local` file in the project root (copy from `.env.example`):
 
 ```
 VITE_API_URL=http://localhost:3000
-VITE_MIRAI_MAX_TOKENS=255
+VITE_MIRAI_MAX_TOKENS=40
+VITE_MIRAI_MAX_WORDS=40
 ```
 
 Use `VITE_API_URL` only for a non-secret backend override during local development. In production, the frontend can call the same-origin `/chat` and `/health` routes directly, or go through the Cloudflare Worker proxy if you deploy that path.
+
+`VITE_MIRAI_MAX_TOKENS` is a safety cap for generation length, while `VITE_MIRAI_MAX_WORDS` adds an explicit 40-word instruction to the request.
 
 ### 2. Backend API Requirements
 
@@ -26,12 +29,14 @@ Sends a user message and returns Mirai's response.
 ```json
 {
   "message": "Hello!",
+  "instruction": "Reply in 40 words or fewer.",
+  "max_words": 40,
   "max_tokens": 255,
   "timestamp": "2026-03-30T10:30:00Z"
 }
 ```
 
-`max_tokens` is sent by the frontend on every chat request so the backend can cap Mirai output length.
+`max_tokens` is sent by the frontend on every chat request so the backend can cap Mirai output length. `max_words` and `instruction` are extra hints for backends that support them.
 
 **Response:**
 ```json

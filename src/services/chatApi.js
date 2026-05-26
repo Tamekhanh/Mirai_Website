@@ -17,7 +17,8 @@ const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL)
 const DEFAULT_TIMEOUT = 300000 // 5 minutes
 const HEALTH_CHECK_TIMEOUT = 5000 // 5 seconds
 const HEALTH_CHECK_CACHE_DURATION = 60000 // Cache health check for 60 seconds
-const MIRAI_MAX_TOKENS = Number(import.meta.env.VITE_MIRAI_MAX_TOKENS || 255)
+const MIRAI_MAX_TOKENS = Number(import.meta.env.VITE_MIRAI_MAX_TOKENS || 40)
+const MIRAI_MAX_WORDS = Number(import.meta.env.VITE_MIRAI_MAX_WORDS || 40)
 
 let lastHealthCheckTime = 0
 let lastHealthCheckStatus = false
@@ -54,9 +55,12 @@ export const sendMessage = async (message) => {
         },
         body: JSON.stringify({
           message: message.trim(),
+          instruction: `Reply in ${MIRAI_MAX_WORDS} words or fewer.`,
+          max_words: MIRAI_MAX_WORDS,
           max_tokens: MIRAI_MAX_TOKENS,
           // Duplicate camelCase key for backends that map JS-style payload names.
           maxTokens: MIRAI_MAX_TOKENS,
+          maxWords: MIRAI_MAX_WORDS,
           timestamp: new Date().toISOString(),
         }),
       },
