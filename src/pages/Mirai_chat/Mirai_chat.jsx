@@ -58,7 +58,7 @@ const AnimationURLs = {
 const AnimationWithExpression = {
 	Welcome: ['happy', AnimationURLs.Welcome],
 	Idle: ['', AnimationURLs.Idle],
-	IdleFallback: ['', AnimationURLs.Welcome],
+	IdleFallback: [''],
 }
 
 const EMOTION_EXPRESSIONS = ['neutral', 'happy', 'angry', 'sad', 'relaxed', 'surprised']
