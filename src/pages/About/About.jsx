@@ -5,7 +5,7 @@ function About() {
 		<main className="about-page">
 			<section className="about-hero">
 				<p className="about-eyebrow">About this project</p>
-				<h1>Mirai is a VRM-powered AI companion</h1>
+				<h1>Web-based 3D Interactive Avatar & Game Hub</h1>
 				<p className="about-lead">
 					This app combines a React frontend, a Three.js VRM avatar, and a backend chat API to deliver a
 					conversation experience that feels alive. The current build is focused on local development and

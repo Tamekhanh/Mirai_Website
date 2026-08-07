@@ -13,7 +13,7 @@ function App() {
       0: '/',
       1: '/chat',
       2: '/about',
-      3: '/music'
+      3: '/games'
     }
     const path = map[navpage] || '/'
     navigate(path)

@@ -106,6 +106,43 @@ const stabilizeVrmMeshes = (vrm) => {
 	})
 }
 
+// Harden the VRM's cel-shading on every MToon material:
+//   shadingToony = 0  (shade softness 0  -> hard edge, no toon softness)
+//   shadingShift = -1 (shading area -1   -> push lit/unlit boundary into shadow)
+// "shading hardness 1" is the hard end of the same dial as softness, so toony = 0
+// already gives maximum hardness.
+const applyVrmShadingPreset = (vrm) => {
+	if (!vrm?.scene) {
+		return
+	}
+
+	vrm.scene.traverse((node) => {
+		if (!node?.isMesh) {
+			return
+		}
+
+		const materials = Array.isArray(node.material) ? node.material : [node.material]
+
+		materials.forEach((material) => {
+			if (!material) {
+				return
+			}
+
+			const isMToon =
+				typeof material.shadingToony === 'number' &&
+				typeof material.shadingShift === 'number'
+
+			if (!isMToon) {
+				return
+			}
+
+			material.shadingToony = 0
+			material.shadingShift = -1
+			material.needsUpdate = true
+		})
+	})
+}
+
 function Mirai_chat() {
 	const canvasRef = useRef(null)
 	const sceneRef = useRef(null)
@@ -474,6 +511,7 @@ function Mirai_chat() {
 			vrm.scene.rotation.y = 0
 			vrm.scene.position.set(0, 0.2, 0)
 			stabilizeVrmMeshes(vrm)
+			applyVrmShadingPreset(vrm)
 
 			sceneRef.current.add(vrm.scene)
 			currentVrmRef.current = vrm

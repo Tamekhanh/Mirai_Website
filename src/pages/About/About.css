@@ -21,9 +21,7 @@
   padding: clamp(1.5rem, 5vw, 3rem);
   color: var(--text-main);
   background:
-    radial-gradient(circle at top left, var(--primary-glow), transparent 35%),
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.15), transparent 30%),
-    linear-gradient(180deg, var(--bg-dark) 0%, #0f172a 100%);
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.15), transparent 30%);
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;

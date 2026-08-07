@@ -18,10 +18,46 @@ const featureCards = [
 	},
 ]
 
+const Banner = [
+	{
+		title: 'MirAI',
+		desc: 'Web-based 3D Interactive Avatar',
+		link: 'https://tamek-mirai.io.vn/chat',
+		banner: 1
+	},
+	{
+		title: 'MirAI Music Game',
+		desc: 'A Rhythm Game Prototype',
+		link: 'https://tamek-mirai.io.vn/games',
+		banner: 2
+	},
+	{
+		title: 'Project S',
+		desc: 'Card Game Prototype',
+		link: 'https://www.facebook.com/share/v/1GDwqWwFaW/',
+		banner: 3
+	},
+	
+]
+
 function Home({ onNavigate }) {
 	return (
 		<main className="home-page">
 			<section className="home-hero">
+				<div className="home-carousel">
+					<div className="home-carousel__slide">
+						{Banner.map((banner) => (
+							<div key={banner.banner} className="home-banner">
+								<h2>{banner.title}</h2>
+								<p>{banner.desc}</p>
+								<a href={banner.link} target="_blank" rel="noopener noreferrer">
+									Learn more
+								</a>
+							</div>
+						))}
+					</div>
+
+				</div>
 				<div className="home-copy">
 					<p className="home-eyebrow">MirAI interactive demo</p>
 					<h2>One place for chat, avatar, and rhythm.</h2>
@@ -36,16 +72,6 @@ function Home({ onNavigate }) {
 						<button type="button" className="home-secondary" onClick={() => onNavigate(3)}>
 							Play music game
 						</button>
-					</div>
-				</div>
-
-				<div className="home-orbital-card" aria-hidden="true">
-					<div className="home-orbital-ring home-orbital-ring-large" />
-					<div className="home-orbital-ring home-orbital-ring-small" />
-					<div className="home-orbital-core">
-						<span className="home-orbital-label">MirAI</span>
-						<strong>Ready</strong>
-						<p>Conversation, character, and gameplay in one interface.</p>
 					</div>
 				</div>
 			</section>
