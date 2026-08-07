@@ -57,8 +57,8 @@
 .about-eyebrow,
 .about-card-label {
   margin: 0 0 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 1em;
+  font-weight: 900;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--primary-blue);
@@ -198,8 +198,8 @@
 }
 
 .about-vroid-img {
-  width: 40%;
-  max-width: 400px;
+  width: 100%;
+  max-width: 600px;
   border-radius: 1.5rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   object-fit: cover;
@@ -217,6 +217,10 @@
   color: var(--text-muted);
 }
 
+.about-AI-model-img:hover {
+  transform: scale(1.02) rotate(1deg);
+}
+
 .about-AI-model {
   display: flex;
   align-items: center;
@@ -232,8 +236,8 @@
 }
 
 .about-AI-model-img {
-  width: 40%;
-  max-width: 400px;
+  width: 100%;
+  max-width: 600px;
   border-radius: 1.5rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   object-fit: cover;
@@ -289,8 +293,7 @@
   }
 
   .about-vroid-img, .about-AI-model-img {
-    width: 80%;
-    max-width: 300px;
+    width: 100%;
     }
 
   .about-vroid-description, .about-AI-model-description {

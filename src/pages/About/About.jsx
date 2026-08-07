@@ -103,7 +103,7 @@ function About() {
 			<section className="about-section AI-model">
 				<div className='about-section-header'>
 					<p className="about-card-label">AI Model</p>
-					<h2>Using Llama 3 8B - Q4 K M</h2>
+					<h2>Using Llama 3 8B - Q4 K M (Fine-tuning)</h2>
 				</div>
 				<div className= "about-AI-model">
 					<img className="about-AI-model-img" src="/About/LLama38b.png" alt="Llama 3 8B" />
