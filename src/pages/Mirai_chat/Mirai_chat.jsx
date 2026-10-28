@@ -59,6 +59,7 @@ const AnimationWithExpression = {
 const EMOTION_EXPRESSIONS = ['neutral', 'happy', 'angry', 'sad', 'relaxed', 'surprised']
 
 const EMOTION_HOLD_MS = 5000
+const LIP_SYNC_GAIN = 0.6 // thu nhỏ độ mở miệng của khẩu hình: giá trị từ backend làm miệng mở quá rộng
 // Phần nét mặt bị giảm đi khi Mirai đang nói (0 = giữ nguyên, 1 = tắt hẳn).
 const SPEAKING_EXPRESSION_DAMPING = { happy: 0.8, surprised: 0.75, angry: 0.5, sad: 0.4, relaxed: 0.5 }
 const GESTURE_BONES = [...new Set(Object.values(GESTURES).flatMap((gesture) => gesture.tracks.map((t) => t.bone)))]
@@ -993,7 +994,7 @@ function Mirai_chat() {
 			cueEntries.forEach(([shape, amount]) => {
 				const expressionName = resolveExpressionName(shape)
 				const current = frameValues[expressionName] ?? 0
-				frameValues[expressionName] = Math.max(current, clamp01(Number(amount) || 0))
+				frameValues[expressionName] = Math.max(current, clamp01((Number(amount) || 0) * LIP_SYNC_GAIN))
 			})
 
 			return frameValues
