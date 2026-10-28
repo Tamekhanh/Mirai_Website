@@ -120,6 +120,7 @@
   .chat-container {
     flex-direction: column;
     min-height: 26rem;
+    height: auto;
   }
 
   .chat-viewer-panel,
@@ -190,6 +191,34 @@
   border-radius: 0.75rem;
   line-height: 1.4;
   word-break: break-word;
+}
+
+.bubble-retry {
+  display: block;
+  margin-top: 0.4rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(15, 23, 42, 0.7);
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.bubble-retry:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.webgl-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+  color: #cbd5e1;
+  background: rgba(15, 23, 42, 0.92);
 }
 
 .bubble-message-mirai {

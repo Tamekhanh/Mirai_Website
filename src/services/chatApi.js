@@ -14,37 +14,68 @@ const normalizeApiBaseUrl = (value) => {
 }
 
 const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL)
-const DEFAULT_TIMEOUT = 300000 // 5 minutes
+const DEFAULT_TIMEOUT = 120000 // 2 minutes (covers HF Space cold start)
 const HEALTH_CHECK_TIMEOUT = 5000 // 5 seconds
 const HEALTH_CHECK_CACHE_DURATION = 60000 // Cache health check for 60 seconds
-const MIRAI_MAX_TOKENS = Number(import.meta.env.VITE_MIRAI_MAX_TOKENS || 40)
+const MIRAI_MAX_TOKENS = Number(import.meta.env.VITE_MIRAI_MAX_TOKENS || 128)
 const MIRAI_MAX_WORDS = Number(import.meta.env.VITE_MIRAI_MAX_WORDS || 40)
+const MIRAI_MODEL = String(import.meta.env.VITE_MIRAI_MODEL || '').trim()
 
 let lastHealthCheckTime = 0
 let lastHealthCheckStatus = false
 
+export class ChatTimeoutError extends Error {
+  constructor() {
+    super('Request timeout')
+    this.name = 'ChatTimeoutError'
+  }
+}
+
 /**
- * Helper function to add timeout to fetch requests
+ * Fetch with a real abort-based timeout. An optional caller signal can cancel it too.
  * @param {string} url - API endpoint URL
- * @param {object} options - Fetch options
+ * @param {object} options - Fetch options (may include `signal`)
  * @param {number} timeout - Timeout in milliseconds
- * @returns {Promise} - Fetch promise with timeout
+ * @returns {Promise<Response>}
  */
-const fetchWithTimeout = (url, options, timeout = DEFAULT_TIMEOUT) => {
-  return Promise.race([
-    fetch(url, options),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Request timeout: No response from server after ${timeout}ms`)), timeout)
-    ),
-  ])
+const fetchWithTimeout = async (url, options = {}, timeout = DEFAULT_TIMEOUT) => {
+  const controller = new AbortController()
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, timeout)
+
+  const { signal: callerSignal, ...fetchOptions } = options
+  const forwardAbort = () => controller.abort()
+  if (callerSignal) {
+    if (callerSignal.aborted) {
+      controller.abort()
+    } else {
+      callerSignal.addEventListener('abort', forwardAbort, { once: true })
+    }
+  }
+
+  try {
+    return await fetch(url, { ...fetchOptions, signal: controller.signal })
+  } catch (error) {
+    if (timedOut) {
+      throw new ChatTimeoutError()
+    }
+    throw error
+  } finally {
+    clearTimeout(timer)
+    callerSignal?.removeEventListener('abort', forwardAbort)
+  }
 }
 
 /**
  * Send a message to the server and get a response
  * @param {string} message - User message to send
+ * @param {{history?: {role: 'user' | 'assistant', content: string}[], model?: string, signal?: AbortSignal}} [options]
  * @returns {Promise<{text: string, audio: string | null, lipSync: any, sources: string[]}>}
  */
-export const sendMessage = async (message) => {
+export const sendMessage = async (message, { history = [], model = MIRAI_MODEL, signal } = {}) => {
   try {
     const response = await fetchWithTimeout(
       `${API_BASE_URL}/chat`,
@@ -53,27 +84,26 @@ export const sendMessage = async (message) => {
         headers: {
           'Content-Type': 'application/json',
         },
+        signal,
         body: JSON.stringify({
           message: message.trim(),
-          instruction: `Reply in ${MIRAI_MAX_WORDS} words or fewer.`,
+          history,
+          model: model || undefined,
           max_words: MIRAI_MAX_WORDS,
           max_tokens: MIRAI_MAX_TOKENS,
-          // Duplicate camelCase key for backends that map JS-style payload names.
-          maxTokens: MIRAI_MAX_TOKENS,
-          maxWords: MIRAI_MAX_WORDS,
-          timestamp: new Date().toISOString(),
         }),
       },
       DEFAULT_TIMEOUT
     )
 
     if (!response.ok) {
-      throw new Error(`Server error: ${response.status} ${response.statusText}`)
+      const serverError = new Error(`Server error: ${response.status} ${response.statusText}`)
+      serverError.status = response.status
+      throw serverError
     }
 
     const data = await response.json()
-    console.log('Server response:', data) // Debug log
-    
+
     // Handle different response formats
     const reply = data.reply || data.message || data.response || data.text || data.content
     
@@ -84,12 +114,15 @@ export const sendMessage = async (message) => {
 
     return {
       text: reply,
+      emotion: typeof data.emotion === 'string' ? data.emotion.trim().toLowerCase() : null,
       audio: typeof data.audio === 'string' ? data.audio : null,
       lipSync: data.lipSync ?? data.blendShapes ?? data.blendshape ?? null,
       sources: Array.isArray(data.sources) ? data.sources : [],
     }
   } catch (error) {
-    console.error('Chat API Error:', error)
+    if (error?.name !== 'AbortError') {
+      console.error('Chat API Error:', error)
+    }
     throw error
   }
 }
@@ -103,11 +136,9 @@ export const checkServerStatus = async () => {
   
   // Return cached status if still valid (within 30 seconds)
   if (now - lastHealthCheckTime < HEALTH_CHECK_CACHE_DURATION) {
-    console.log('[Health Check] Using cached status:', lastHealthCheckStatus, `(cache age: ${now - lastHealthCheckTime}ms)`)
     return lastHealthCheckStatus
   }
-  
-  console.log('[Health Check] Making fresh request...')
+
   try {
     const response = await fetchWithTimeout(
       `${API_BASE_URL}/health`,
@@ -118,7 +149,6 @@ export const checkServerStatus = async () => {
     )
     lastHealthCheckStatus = response.ok
     lastHealthCheckTime = now
-    console.log('[Health Check] Result:', response.ok)
     return response.ok
   } catch (error) {
     console.error('[Health Check] Failed:', error.message)
