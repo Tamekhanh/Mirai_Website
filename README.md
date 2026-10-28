@@ -74,7 +74,7 @@ Copy `.env.example` to `.env.local` (the `.env` is git-ignored):
 
 ```
 VITE_API_URL=http://localhost:3000   # optional: override the backend URL for local dev
-VITE_MIRAI_MAX_TOKENS=40             # generation length safety cap
+VITE_MIRAI_MAX_TOKENS=128            # generation length cap (backend clamps to 96-192)
 VITE_MIRAI_MAX_WORDS=40              # word-limit hint sent in the request body
 ```
 
@@ -84,13 +84,13 @@ VITE_MIRAI_MAX_WORDS=40              # word-limit hint sent in the request body
 
 1. The frontend calls `sendMessage()` in [chatApi.js](src/services/chatApi.js), which POSTs to same-origin `/chat` (or `/api/chat`).
 2. The Cloudflare Worker in [worker.js](src/worker.js) proxies that request to the Hugging Face Space (`https://tamek-mirai.hf.space`), injecting a `Bearer SPACE_API_KEY` if set.
-3. The Space runs the fine-tuned Llama 3 8B model and returns `{ reply }`.
+3. The Space runs the fine-tuned Llama 3 8B model and returns `{ text, reply, emotion, audio, lipSync, sources, meta }`.
 4. If the response includes `audio` + `lipSync` mouth-cues, the avatar plays the audio and its blendshapes are driven frame-by-frame.
 5. Health is checked via `GET /health` and cached for 60 seconds to avoid hammering the server.
 
 ### Backend Contract (summary)
 
-- `POST /chat` — request `{ message, instruction, max_words, max_tokens, timestamp }`, response `{ reply | message | response }`
+- `POST /chat` — request `{ message, history, model, max_words, max_tokens }`, response `{ text, reply, emotion, audio, audioFormat, lipSync, sources, meta }`
 - `GET /health` — returns HTTP 200 when online
 - `GET /history` (optional) — returns `{ messages: [...] }`
 

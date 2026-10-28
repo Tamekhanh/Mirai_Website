@@ -134,7 +134,7 @@ export const sendMessage = async (message, { history = [], model = MIRAI_MODEL, 
 export const checkServerStatus = async () => {
   const now = Date.now()
   
-  // Return cached status if still valid (within 30 seconds)
+  // Return cached status if still valid (within HEALTH_CHECK_CACHE_DURATION)
   if (now - lastHealthCheckTime < HEALTH_CHECK_CACHE_DURATION) {
     return lastHealthCheckStatus
   }

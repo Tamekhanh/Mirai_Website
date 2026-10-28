@@ -17,7 +17,8 @@ const MAX_HISTORY_CHARS = 500
 const HEALTH_CACHE_SECONDS = 30
 const MAX_TOKENS_CAP = 192
 const MAX_WORDS_CAP = 60
-const UPSTREAM_TIMEOUT_MS = 120000
+// Phải nhỏ hơn timeout của frontend (chatApi.js, 120s) để người dùng nhận 504 có nghĩa thay vì tự hết giờ.
+const UPSTREAM_TIMEOUT_MS = 110000
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -64,11 +65,14 @@ const buildUpstreamHeaders = (env) => {
   return headers
 }
 
-const toClientResponse = (upstream) =>
-  new Response(upstream.body, {
-    status: upstream.status,
-    headers: { 'content-type': upstream.headers.get('content-type') ?? 'application/json' },
-  })
+const toClientResponse = (upstream) => {
+  const headers = { 'content-type': upstream.headers.get('content-type') ?? 'application/json' }
+  const retryAfter = upstream.headers.get('retry-after')
+  if (retryAfter) {
+    headers['retry-after'] = retryAfter
+  }
+  return new Response(upstream.body, { status: upstream.status, headers })
+}
 
 const isCrossOrigin = (request, url) => {
   const origin = request.headers.get('origin')
@@ -98,8 +102,13 @@ const handleChat = async (request, env, url) => {
     return json({ error: 'Too many requests' }, 429)
   }
 
+  const declaredLength = Number(request.headers.get('content-length'))
+  if (declaredLength > MAX_BODY_BYTES) {
+    return json({ error: 'Payload too large' }, 413)
+  }
+
   const rawBody = await request.text()
-  if (rawBody.length > MAX_BODY_BYTES) {
+  if (new TextEncoder().encode(rawBody).length > MAX_BODY_BYTES) {
     return json({ error: 'Payload too large' }, 413)
   }
 
@@ -144,7 +153,8 @@ const handleChat = async (request, env, url) => {
       method: 'POST',
       headers: buildUpstreamHeaders(env),
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+      // Client ngắt kết nối (ví dụ xóa hội thoại) thì hủy luôn request upstream.
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)]),
     })
     logChat(upstream.status)
     return toClientResponse(upstream)
@@ -161,7 +171,9 @@ const handleHealth = async (request, env, url) => {
     return json({ error: 'Method not allowed' }, 405)
   }
 
-  const modelKey = url.searchParams.get('model') ?? DEFAULT_MODEL
+  const requestedModel = url.searchParams.get('model') ?? DEFAULT_MODEL
+  // Chỉ nhận key model đã khai báo để query lạ không tạo thêm mục cache.
+  const modelKey = requestedModel in getModels(env) ? requestedModel : DEFAULT_MODEL
   const cache = typeof caches !== 'undefined' ? caches.default : null
   const cacheKey = new Request(`${url.origin}/__health/${encodeURIComponent(modelKey)}`)
 
