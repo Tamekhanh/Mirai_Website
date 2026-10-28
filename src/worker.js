@@ -15,6 +15,7 @@ const MAX_MESSAGE_CHARS = 1000
 const MAX_HISTORY_ITEMS = 12
 const MAX_HISTORY_CHARS = 500
 const HEALTH_CACHE_SECONDS = 30
+const HEALTH_LOADING_CACHE_SECONDS = 5
 const MAX_TOKENS_CAP = 192
 const MAX_WORDS_CAP = 60
 // Phải nhỏ hơn timeout của frontend (chatApi.js, 120s) để người dùng nhận 504 có nghĩa thay vì tự hết giờ.
@@ -190,12 +191,14 @@ const handleHealth = async (request, env, url) => {
     })
     const response = toClientResponse(upstream)
 
-    if (cache && upstream.ok) {
+    // 200 cache lâu; 503 (model đang nạp) cache ngắn để các client không cùng đánh vào Space đang khởi động.
+    const cacheSeconds = upstream.ok ? HEALTH_CACHE_SECONDS : upstream.status === 503 ? HEALTH_LOADING_CACHE_SECONDS : 0
+    if (cache && cacheSeconds > 0) {
       const cacheable = new Response(await response.clone().text(), {
         status: response.status,
         headers: {
           'content-type': response.headers.get('content-type') ?? 'application/json',
-          'cache-control': `public, max-age=${HEALTH_CACHE_SECONDS}`,
+          'cache-control': `public, max-age=${cacheSeconds}`,
         },
       })
       await cache.put(cacheKey, cacheable.clone())
