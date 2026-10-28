@@ -60,6 +60,8 @@ const EMOTION_EXPRESSIONS = ['neutral', 'happy', 'angry', 'sad', 'relaxed', 'sur
 const EMOTION_HOLD_MS = 5000
 const REST_ARM_DROP = 1.2 // rad: hạ cánh tay từ T-pose xuống dáng đứng tự nhiên
 const REST_ELBOW_BEND = 0.2
+const ANIMATION_FADE_SECONDS = 0.5 // crossfade giữa các clip, tránh nhảy tư thế đột ngột
+const EXPRESSION_EASE = 5 // tốc độ làm mượt nét mặt (1/giây)
 const IDLE_SMILE = 0.14 // nét cười rất nhẹ khi không có cảm xúc nào đang giữ: mặt trung tính hoàn toàn trông vô hồn
 
 function Mirai_chat() {
@@ -84,7 +86,10 @@ function Mirai_chat() {
 	const chatAbortRef = useRef(null)
 	const speechAbortRef = useRef(null)
 	const emotionTimeoutRef = useRef(null)
-	const emotionActiveRef = useRef(false)
+	const emotionActiveRef = useRef('') // tên nét mặt cảm xúc đang giữ, rỗng nếu không có
+	const emotionLevelsRef = useRef({}) // giá trị đã làm mượt đang áp lên từng nét mặt
+	const clipCacheRef = useRef(new Map())
+	const fadeOutTimeoutRef = useRef(null)
 	const [messages, setMessages] = useState(loadStoredMessages)
 	const [draftMessage, setDraftMessage] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
@@ -140,6 +145,11 @@ function Mirai_chat() {
 		}
 
 		animationMixerRef.current = null
+		clipCacheRef.current.clear()
+		if (fadeOutTimeoutRef.current) {
+			window.clearTimeout(fadeOutTimeoutRef.current)
+			fadeOutTimeoutRef.current = null
+		}
 	}
 
 	const setAnimationExpression = (expressionName) => {
@@ -160,17 +170,17 @@ function Mirai_chat() {
 		if (expressionName && availableShapes.has(expressionName)) {
 			nextValues[expressionName] = 0.5
 		}
-		emotionActiveRef.current = Boolean(expressionName && availableShapes.has(expressionName))
+		emotionActiveRef.current = expressionName && availableShapes.has(expressionName) ? expressionName : ''
 
 		if (Object.keys(nextValues).length === 0) {
 			return
 		}
 
+		// Chỉ cập nhật mục tiêu (và panel debug): vòng render sẽ làm mượt giá trị thật để nét mặt không giật.
 		setBlendShapeValues((previousValues) => ({
 			...previousValues,
 			...nextValues,
 		}))
-		applyBlendShapeValues(nextValues)
 	}
 
 	const loadAnimationClip = async (animationUrl, vrm) => {
@@ -228,6 +238,18 @@ function Mirai_chat() {
 		throw new Error(`Unsupported animation format: ${animationUrl}`)
 	}
 
+	// Clip được cache theo VRM + URL: trước đây mỗi lần chuyển animation lại tải và parse lại FBX.
+	const getAnimationClip = (animationUrl, vrm) => {
+		const key = vrm.scene.uuid + '|' + animationUrl
+		const cache = clipCacheRef.current
+		if (!cache.has(key)) {
+			const pending = loadAnimationClip(animationUrl, vrm)
+			cache.set(key, pending)
+			pending.catch(() => cache.delete(key))
+		}
+		return cache.get(key)
+	}
+
 	const playAnimationWithExpression = async (animationName) => {
 		const animationConfig = AnimationWithExpression[animationName]
 		if (!animationConfig) {
@@ -255,13 +277,9 @@ function Mirai_chat() {
 			finishedAnimationListenerRef.current = null
 		}
 
-		if (currentAnimationActionRef.current) {
-			currentAnimationActionRef.current.stop()
-			currentAnimationActionRef.current = null
-		}
-
 		try {
-			const clip = await loadAnimationClip(animationUrl, vrm)
+			// Giữ clip hiện tại chạy trong lúc tải clip mới (trước đây bị dừng ngay nên avatar rơi về tư thế nghỉ).
+			const clip = await getAnimationClip(animationUrl, vrm)
 			if (playVersion !== animationPlayVersionRef.current || currentVrmRef.current !== vrm) {
 				return
 			}
@@ -275,11 +293,26 @@ function Mirai_chat() {
 			action.paused = false
 			action.timeScale = 1
 			action.setEffectiveWeight(1)
+			const previousAction = currentAnimationActionRef.current
 
 			const isIdleAnimation = animationName === 'Idle'
 			action.setLoop(isIdleAnimation ? THREE.LoopRepeat : THREE.LoopOnce, isIdleAnimation ? Infinity : 1)
 			action.clampWhenFinished = !isIdleAnimation
 			action.play()
+			if (previousAction && previousAction !== action) {
+				action.crossFadeFrom(previousAction, ANIMATION_FADE_SECONDS, false)
+				const fadingClip = previousAction.getClip()
+				if (fadeOutTimeoutRef.current) {
+					window.clearTimeout(fadeOutTimeoutRef.current)
+				}
+				fadeOutTimeoutRef.current = window.setTimeout(() => {
+					fadeOutTimeoutRef.current = null
+					previousAction.stop()
+					mixer.uncacheAction(fadingClip, vrm.scene)
+				}, ANIMATION_FADE_SECONDS * 1000 + 100)
+			} else {
+				action.fadeIn(ANIMATION_FADE_SECONDS)
+			}
 			currentAnimationActionRef.current = action
 
 			if (idleTransitionTimeoutRef.current) {
@@ -296,7 +329,7 @@ function Mirai_chat() {
 					void playAnimationWithExpression('Idle')
 				}
 
-				const clipDurationMs = Math.max(action.getClip().duration * 1000, 100)
+				const clipDurationMs = Math.max(action.getClip().duration * 1000 - ANIMATION_FADE_SECONDS * 1000, 100)
 				idleTransitionTimeoutRef.current = window.setTimeout(() => {
 					idleTransitionTimeoutRef.current = null
 					moveToIdle()
@@ -415,6 +448,8 @@ function Mirai_chat() {
 				return nextValues
 			})
 			void playAnimationWithExpression('Welcome')
+				// Tải sẵn clip Idle trong lúc clip chào đang chạy để lúc chuyển không bị khựng chờ tải.
+				void getAnimationClip(AnimationURLs.Idle, vrm).catch(() => {})
 
 			setVrmLoadingProgress(100)
 
@@ -568,7 +603,7 @@ function Mirai_chat() {
 		let elapsedTime = 0
 		let nextBlinkAt = 2 + Math.random() * 3
 		let blinkProgress = -1
-		let idleSmile = 0
+		
 
 		// Saccade: mắt thỉnh thoảng đảo nhẹ quanh điểm đang nhìn, người thật không bao giờ nhìn đứng yên.
 		const saccade = new THREE.Vector3()
@@ -726,12 +761,22 @@ function Mirai_chat() {
 						}
 					}
 				}
-				// Nụ cười nền: chỉ chạy khi không có cảm xúc nào đang giữ (setAnimationExpression quản lý lúc đó).
-				const smileTarget = emotionActiveRef.current ? 0 : IDLE_SMILE + Math.sin(elapsedTime * 0.4) * 0.03
-				idleSmile += (smileTarget - idleSmile) * (1 - Math.exp(-2 * delta))
-				if (!emotionActiveRef.current && currentVrmRef.current.expressionManager) {
-					currentVrmRef.current.expressionManager.setValue('happy', idleSmile)
+				// Nét mặt cảm xúc + nụ cười nền: làm mượt về giá trị mục tiêu thay vì đổi tức thì.
+				if (expressionManager) {
+					const ease = 1 - Math.exp(-EXPRESSION_EASE * delta)
+					const held = emotionActiveRef.current
+					EMOTION_EXPRESSIONS.forEach((name) => {
+						let target = name === held ? 0.5 : 0
+						if (!held && name === 'happy') {
+							target = IDLE_SMILE + Math.sin(elapsedTime * 0.4) * 0.03
+						}
+						const level = emotionLevelsRef.current[name] ?? 0
+						const next = level + (target - level) * ease
+						emotionLevelsRef.current[name] = next
+						expressionManager.setValue(name, next)
+					})
 				}
+
 				currentVrmRef.current.update(delta)
 			}
 
