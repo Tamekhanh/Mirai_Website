@@ -59,6 +59,8 @@ const AnimationWithExpression = {
 const EMOTION_EXPRESSIONS = ['neutral', 'happy', 'angry', 'sad', 'relaxed', 'surprised']
 
 const EMOTION_HOLD_MS = 5000
+// Phần nét mặt bị giảm đi khi Mirai đang nói (0 = giữ nguyên, 1 = tắt hẳn).
+const SPEAKING_EXPRESSION_DAMPING = { happy: 0.8, surprised: 0.75, angry: 0.5, sad: 0.4, relaxed: 0.5 }
 const GESTURE_BONES = [...new Set(Object.values(GESTURES).flatMap((gesture) => gesture.tracks.map((t) => t.bone)))]
 const GREETING_PATTERN = /^\s*(xin\s+chào|chào|hello|hi|hey)(?=$|[\s,!.?~])/i
 const GESTURE_INTENSITY = 1.25
@@ -798,11 +800,15 @@ function Mirai_chat() {
 				if (expressionManager) {
 					const ease = 1 - Math.exp(-EXPRESSION_EASE * delta)
 					const held = emotionActiveRef.current
+					// Đang nói thì giảm các nét mặt làm miệng mở/kéo rộng (cười, ngạc nhiên...) để không chồng lên
+					// khẩu hình, nếu không miệng sẽ toác ra. Cảm xúc vẫn thể hiện qua mắt, lông mày và cử chỉ cơ thể.
+					const speakingAmount = Math.min(1, speakingWeight * 2.5)
 					EMOTION_EXPRESSIONS.forEach((name) => {
 						let target = name === held ? 0.5 : 0
 						if (!held && name === 'happy') {
 							target = IDLE_SMILE + Math.sin(elapsedTime * 0.4) * 0.03
 						}
+						target *= 1 - (SPEAKING_EXPRESSION_DAMPING[name] ?? 0) * speakingAmount
 						const level = emotionLevelsRef.current[name] ?? 0
 						const next = level + (target - level) * ease
 						emotionLevelsRef.current[name] = next
