@@ -1,75 +1,70 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Màu và font lấy từ token chung trong index.css (không khai báo lại :root ở đây:
    trước đây --text-muted riêng của trang này ghi đè màu chữ phụ của cả app sau khi ghé About). */
 .about-page {
-  --primary-blue: var(--primary);
-  --bg-card: var(--surface);
-  --text-main: var(--text);
-
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
   width: 100%;
-  height: 100vh;
-  height: 100dvh;
-  padding: clamp(1.5rem, 5vw, 3rem);
-  color: var(--text-main);
+  height: 100%;
+  padding: clamp(1.25rem, 5vw, 3rem);
+  color: var(--text);
   background:
-    radial-gradient(60% 40% at 90% 0%, rgba(242, 166, 90, 0.1), transparent),
+    radial-gradient(60% 40% at 90% 0%, var(--accent-soft), transparent),
     var(--bg);
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  font-size: 1rem;
 }
 
-/* Các khối nội dung tĩnh: không blur, không nhảy khi hover (không phải thành phần tương tác). */
+/* Khối nội dung tĩnh: không blur, không nhảy khi hover. */
 .about-hero,
 .about-section,
 .about-card,
 .about-note {
   border: 1px solid var(--border);
-  background: var(--bg-card);
+  background: var(--surface);
   box-shadow: var(--shadow-1);
 }
 
 .about-hero {
-  border-radius: var(--r-lg);
+  flex: none;
+  border-radius: var(--r-xl);
   padding: clamp(1.75rem, 5vw, 3.25rem);
-  text-align: left;
+}
+
+.about-section,
+.about-section-split {
+  flex: none;
 }
 
 .about-eyebrow,
 .about-card-label {
   margin: 0 0 0.75rem;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--primary-blue);
+  color: var(--primary);
 }
 
 .about-hero h1 {
   margin: 0;
-  max-width: 22ch;
-  font-size: clamp(2.1rem, 5vw, 3.6rem);
-  line-height: 1.1;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -0.015em;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .about-lead {
   max-width: 62ch;
   margin: 1.25rem 0 2rem;
   font-size: clamp(1.05rem, 2vw, 1.15rem);
-  line-height: 1.7;
   color: var(--text-muted);
+}
+
+.about-lead strong {
+  color: var(--text);
 }
 
 .about-actions {
@@ -87,7 +82,7 @@
   border-radius: var(--r-pill);
   text-decoration: none;
   font-weight: 700;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out);
 }
 
 .about-button:focus-visible {
@@ -106,7 +101,7 @@
 
 .about-button-secondary {
   color: var(--text);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid var(--border-strong);
   background: var(--surface-2);
 }
 
@@ -114,34 +109,8 @@
   border-color: var(--primary);
 }
 
-/* Grid System */
-.about-grid {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-}
-
-.about-card {
-  border-radius: var(--r-lg);
-  padding: 1.5rem;
-}
-
-.about-card h2 {
-  margin: 0 0 1rem 0;
-  font-size: 1.35rem;
-  color: var(--text);
-}
-
-.about-card p {
-  color: var(--text-muted);
-  line-height: 1.7;
-  margin: 0;
-}
-
-/* Stack Section */
 .about-section {
-  padding: 2rem;
+  padding: clamp(1.5rem, 4vw, 2rem);
   border-radius: var(--r-lg);
 }
 
@@ -150,69 +119,124 @@
 }
 
 .about-section h2 {
-  font-size: clamp(1.4rem, 3vw, 2rem);
-  color: var(--text);
   margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 700;
 }
 
-.about-stack {
+.about-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
 }
 
-.about-stack-item {
+.about-card {
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  box-shadow: none;
+}
+
+.about-card h3,
+.about-flow-item h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.about-card p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.about-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-chips li {
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Luồng 4 bước */
+.about-flow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-flow-item {
   padding: 1.25rem;
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface-2);
 }
 
-.about-stack-item span {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 700;
-  color: var(--text);
-  font-size: 1.05rem;
-}
-
-.about-stack-item p {
+.about-flow-item p {
   margin: 0;
   color: var(--text-muted);
-  line-height: 1.65;
+  font-size: 0.95rem;
+}
+
+.about-flow-step {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.75rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
 }
 
 /* Hình + mô tả (VRoid, Llama) */
-.about-vroid,
-.about-AI-model {
+.about-media {
   display: flex;
   align-items: center;
   gap: 2.5rem;
 }
 
-.about-vroid-img,
-.about-AI-model-img {
+.about-media p {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--text-muted);
+}
+
+.about-media-img {
   width: 100%;
-  max-width: 560px;
+  max-width: 520px;
   height: auto;
   border-radius: var(--r-md);
   box-shadow: var(--shadow-1);
   object-fit: cover;
 }
 
-.about-vroid-description,
-.about-AI-model-description {
-  width: 60%;
-  font-size: 1.05rem;
-  line-height: 1.8;
-  color: var(--text-muted);
+.about-media-img-sm {
+  max-width: 300px;
 }
 
-/* Split Section */
 .about-section-split {
   display: grid;
   grid-template-columns: 1.3fr 1fr;
-  gap: 1.5rem;
+  gap: 1rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .about-note {
@@ -220,27 +244,50 @@
   padding: 1.5rem;
 }
 
+.about-link {
+  color: var(--primary);
+  font-weight: 600;
+}
+
 .about-inline-code {
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-mono);
   padding: 0.15rem 0.45rem;
   border-radius: 0.4rem;
-  background: rgba(95, 184, 230, 0.14);
+  background: var(--primary-soft);
   color: var(--primary);
   font-size: 0.9em;
   overflow-wrap: anywhere;
 }
 
-.about-list, .about-steps {
+.about-list,
+.about-steps {
+  margin: 0;
   padding-left: 1.5rem;
   display: grid;
   gap: 0.75rem;
   color: var(--text-muted);
-  line-height: 1.6;
 }
 
-/* Responsive */
+.about-dev summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.about-dev summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--r-sm);
+}
+
+.about-dev[open] summary {
+  margin-bottom: 0.75rem;
+}
+
 @media (max-width: 1024px) {
-  .about-stack {
+  .about-flow {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -253,41 +300,27 @@
   }
 
   .about-grid,
-  .about-stack,
   .about-section-split {
     grid-template-columns: 1fr;
   }
 
-  .about-vroid,
-  .about-AI-model {
+  .about-media {
     flex-direction: column;
     align-items: stretch;
     gap: 1.25rem;
   }
 
-  .about-vroid-img,
-  .about-AI-model-img {
-    max-width: 100%;
-  }
-
-  .about-vroid-description,
-  .about-AI-model-description {
-    width: 100%;
-  }
-
-  .about-hero h1 {
+  .about-media-img {
     max-width: 100%;
   }
 }
 
 @media (max-width: 600px) {
   .about-page {
-    padding: 1.25rem;
-    gap: 1.5rem;
+    gap: 1.25rem;
   }
 
-  .about-hero,
-  .about-section {
-    padding: 1.5rem;
+  .about-flow {
+    grid-template-columns: 1fr;
   }
 }

@@ -20,11 +20,41 @@
     --ok: #6ee7a8;
     --danger: #ff6b81;
 
-    --font-ui: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    --surface-3: #25333a;
+    --border-strong: rgba(238, 243, 242, 0.18);
+    --text-faint: #8a9da2;
+    --primary-soft: rgba(95, 184, 230, 0.14);
+    --accent-soft: rgba(242, 166, 90, 0.14);
+    --warn: #f5c86b;
+
+    --font-ui: "Be Vietnam Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+    --fs-sm: 0.9375rem;
+    --fs-md: 1rem;
+    --fs-lg: 1.25rem;
+    --fs-xl: clamp(1.6rem, 3vw, 2.2rem);
+    --fs-2xl: clamp(2.2rem, 5vw, 3.4rem);
+
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 24px;
+    --sp-6: 32px;
+    --sp-7: 48px;
+
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --dur-1: 120ms;
+    --dur-2: 220ms;
+
+    --header-h: 60px;
+    --tabbar-h: 64px;
 
     --r-sm: 8px;
     --r-md: 14px;
     --r-lg: 22px;
+    --r-xl: 28px;
     --r-pill: 999px;
 
     --shadow-1: 0 4px 16px rgba(0, 0, 0, 0.35);
@@ -36,7 +66,12 @@ body {
     font-family: var(--font-ui);
     background: var(--bg);
     color: var(--text);
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+    line-height: 1.15;
 }
 
 h1, h2, h3, h4, h5, h6, button, input, textarea, select {

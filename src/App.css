@@ -1,25 +1,47 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-4);
+  box-sizing: border-box;
   /* Nền đặc (không blur): header nằm cạnh canvas WebGL, blur sẽ ép composite lại mỗi khung hình. */
   background-color: var(--bg);
   border-bottom: 1px solid var(--border);
   color: var(--text);
-  height: 50px;
+  height: var(--header-h);
+  flex: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--r-md);
+}
+
+.brand:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.brand-logo {
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
 }
 
 .title {
   margin: 0;
   font-size: 1.5rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.01em;
+}
+
+.title-ai {
+  color: var(--primary);
 }
 
 .container {
@@ -30,17 +52,28 @@
   flex-direction: column;
   background-color: var(--bg);
 }
-.nav-btn {
-  background-color: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 15px;
-  cursor: pointer;
+
+.nav {
+  display: flex;
   height: 100%;
-  font-weight: 600;
-  padding: 0px 20px;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 var(--sp-5);
+  border: none;
   border-radius: var(--r-pill);
-  transition: background-color 150ms ease, color 150ms ease;
+  background-color: transparent;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out);
 }
 
 .nav-btn:hover {
@@ -48,32 +81,23 @@
   color: var(--text);
 }
 
-a.nav-btn {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-}
-
 .nav-btn.active {
-  background-color: rgba(95, 184, 230, 0.16);
+  background-color: var(--primary-soft);
   color: var(--primary);
 }
 
-.nav-btn:focus-visible {
+.nav-btn:focus-visible,
+.tab:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
 
 .route-loading {
   color: var(--text-muted);
-  padding: 24px;
+  padding: var(--sp-5);
 }
-.nav{
-  display: flex;
-  height: 100%;
-  gap: 8px;
-}
-#main{
+
+#main {
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -84,11 +108,14 @@ a.nav-btn {
   min-height: 0;
   width: 100%;
   flex: 1;
-  padding: 12px 0px;
-  gap: 12px;
+  padding: var(--sp-3) 0;
   overflow: hidden;
   /* Đích của skip link: không vẽ viền khi được focus bằng script. */
   outline: none;
+}
+
+.tabbar {
+  display: none;
 }
 
 @media (max-width: 900px) {
@@ -106,28 +133,87 @@ a.nav-btn {
   .layout {
     height: auto;
     overflow: visible;
-    padding: 12px;
+    padding: var(--sp-3);
     box-sizing: border-box;
   }
+}
 
+/* Điện thoại: thanh tab cố định ở dưới; riêng /chat giữ nav gọn trên header để không chồng với ô nhập. */
+@media (max-width: 760px) {
   .header {
-    height: auto;
-    min-height: 50px;
-    flex-wrap: wrap;
-    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
   }
 
   .nav {
-    height: auto;
-    flex-wrap: wrap;
-    gap: 4px;
+    display: none;
   }
 
-  /* Vùng chạm tối thiểu 44px trên điện thoại. */
-  .nav-btn {
-    height: auto;
+  .layout {
+    padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--sp-3));
+  }
+
+  .tabbar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
     min-height: var(--touch-target);
-    padding: 8px 16px;
-    font-size: 15px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .tab svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .tab.active {
+    color: var(--primary);
+  }
+
+  .is-chat .layout {
+    padding-bottom: var(--sp-3);
+  }
+
+  .is-chat .tabbar {
+    display: none;
+  }
+
+  .is-chat .nav {
+    display: flex;
+    overflow-x: auto;
+    gap: var(--sp-1);
+    scrollbar-width: none;
+  }
+
+  .is-chat .nav-btn {
+    padding: 0 var(--sp-3);
+    height: var(--touch-target);
+  }
+
+  .is-chat .brand .title {
+    display: none;
   }
 }

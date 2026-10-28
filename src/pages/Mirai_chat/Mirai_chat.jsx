@@ -14,6 +14,7 @@ import {
 import { fetchSpeech, sendMessage } from '../../services/chatApi'
 import VRMLoadingScreen from '../../components/VRMLoadingScreen'
 import { retargetMixamoClip } from './mixamoRetarget'
+import { GesturePlayer, GESTURES } from './gestures'
 import {
 	CHAT_STORAGE_KEY,
 	GREETING_MESSAGE,
@@ -58,6 +59,9 @@ const AnimationWithExpression = {
 const EMOTION_EXPRESSIONS = ['neutral', 'happy', 'angry', 'sad', 'relaxed', 'surprised']
 
 const EMOTION_HOLD_MS = 5000
+const GESTURE_BONES = [...new Set(Object.values(GESTURES).flatMap((gesture) => gesture.tracks.map((t) => t.bone)))]
+const GREETING_PATTERN = /^\s*(xin\s+chào|chào|hello|hi|hey)(?=$|[\s,!.?~])/i
+const GESTURE_INTENSITY = 1.25
 const REST_ARM_DROP = 1.2 // rad: hạ cánh tay từ T-pose xuống dáng đứng tự nhiên
 const REST_ELBOW_BEND = 0.2
 const ANIMATION_FADE_SECONDS = 0.5 // crossfade giữa các clip, tránh nhảy tư thế đột ngột
@@ -74,6 +78,8 @@ function Mirai_chat() {
 	const lookTargetRef = useRef(new THREE.Object3D())
 	const isThinkingRef = useRef(false)
 	const nodStartRef = useRef(-Infinity)
+	const currentAnimationNameRef = useRef('')
+	const [gesturePlayer] = useState(() => new GesturePlayer())
 	const frameIdRef = useRef(null)
 	const loaderHideTimeoutRef = useRef(null)
 	const activeAudioRef = useRef(null)
@@ -257,6 +263,7 @@ function Mirai_chat() {
 		}
 
 		const [expressionName, animationUrl] = animationConfig
+		currentAnimationNameRef.current = animationName
 		setAnimationExpression(expressionName)
 
 		const vrm = currentVrmRef.current
@@ -638,10 +645,23 @@ function Mirai_chat() {
 			}
 
 			offsetQuaternion.setFromEuler(offsetEuler.set(x, y, z))
-			bone.quaternion.multiply(offsetQuaternion)
+			bone.quaternion.multiply(offsetQuaternion).normalize()
 			state.applied.copy(bone.quaternion)
 			state.inverse.copy(offsetQuaternion).invert()
 			state.active = true
+		}
+
+		gesturePlayer.setAmplitude(window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0.35 : 1)
+		if (import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')) {
+			window.__miraiGesturePlayer = gesturePlayer
+			window.__miraiGestures = GESTURES
+			window.__miraiVrm = () => currentVrmRef.current
+			window.__miraiGesture = (name, intensity, freezeAt = null) => {
+				gesturePlayer.freezeTime = freezeAt
+				if (name) {
+					gesturePlayer.play(name, intensity)
+				}
+			}
 		}
 
 		const applyProceduralMotion = (vrm, time, delta) => {
@@ -657,22 +677,42 @@ function Mirai_chat() {
 
 			const breath = Math.sin(time * 1.7)
 			const nodAge = (performance.now() - nodStartRef.current) / 1000
-			const nod = nodAge >= 0 && nodAge < 0.7 ? Math.sin((nodAge / 0.7) * Math.PI) * 0.12 : 0
+			const nod = nodAge >= 0 && nodAge < 0.7 ? Math.sin((nodAge / 0.7) * Math.PI) ** 2 * 0.12 : 0
 			const talkBob = speakingWeight * (Math.sin(time * 6.5) * 0.02 + Math.sin(time * 3.1) * 0.015)
 
 			const headPitch = Math.sin(time * 0.43) * 0.015 + talkBob + nod - thinkingWeight * 0.04
 			const headYaw = Math.sin(time * 0.5) * 0.04 + thinkingWeight * 0.15
 			const headRoll = Math.sin(time * 0.37) * 0.02 + thinkingWeight * 0.1
 
-			applyBoneOffset(vrm, 'leftUpperArm', 0, 0, -REST_ARM_DROP * restPoseWeight)
-			applyBoneOffset(vrm, 'rightUpperArm', 0, 0, REST_ARM_DROP * restPoseWeight)
-			applyBoneOffset(vrm, 'leftLowerArm', 0, 0, -REST_ELBOW_BEND * restPoseWeight)
-			applyBoneOffset(vrm, 'rightLowerArm', 0, 0, REST_ELBOW_BEND * restPoseWeight)
-			applyBoneOffset(vrm, 'spine', breath * 0.006, 0, 0)
-			applyBoneOffset(vrm, 'chest', breath * 0.012, Math.sin(time * 0.5) * 0.01, 0)
-			applyBoneOffset(vrm, 'upperChest', breath * 0.008, 0, 0)
-			applyBoneOffset(vrm, 'neck', headPitch * 0.4, headYaw * 0.4, headRoll * 0.4)
-			applyBoneOffset(vrm, 'head', headPitch * 0.6, headYaw * 0.6, headRoll * 0.6)
+			// Cộng dồn mọi offset (nền + cử chỉ) theo từng xương rồi áp một lần: applyBoneOffset gọi hai lần
+			// trên cùng xương sẽ huỷ offset của lần đầu.
+			const offsets = new Map()
+			const addOffset = (boneName, x, y, z) => {
+				const current = offsets.get(boneName) ?? [0, 0, 0]
+				current[0] += x
+				current[1] += y
+				current[2] += z
+				offsets.set(boneName, current)
+			}
+
+			addOffset('leftUpperArm', 0, 0, -REST_ARM_DROP * restPoseWeight)
+			addOffset('rightUpperArm', 0, 0, REST_ARM_DROP * restPoseWeight)
+			addOffset('leftLowerArm', 0, 0, -REST_ELBOW_BEND * restPoseWeight)
+			addOffset('rightLowerArm', 0, 0, REST_ELBOW_BEND * restPoseWeight)
+			addOffset('spine', breath * 0.006, 0, 0)
+			addOffset('chest', breath * 0.012, Math.sin(time * 0.5) * 0.01, 0)
+			addOffset('upperChest', breath * 0.008, 0, 0)
+			addOffset('neck', headPitch * 0.4, headYaw * 0.4, headRoll * 0.4)
+			addOffset('head', headPitch * 0.6, headYaw * 0.6, headRoll * 0.6)
+
+			gesturePlayer.update(delta).forEach(([x, y, z], boneName) => addOffset(boneName, x, y, z))
+			// Xương từng dùng bởi cử chỉ phải được áp mỗi khung (kể cả 0) để offset cũ được gỡ ra.
+			GESTURE_BONES.forEach((boneName) => {
+				if (!offsets.has(boneName)) {
+					offsets.set(boneName, [0, 0, 0])
+				}
+			})
+			offsets.forEach(([x, y, z], boneName) => applyBoneOffset(vrm, boneName, x, y, z))
 		}
 
 		const controls = new OrbitControls(camera, renderer.domElement)
@@ -709,14 +749,7 @@ function Mirai_chat() {
 		})
 		visibilityObserver.observe(canvas)
 
-		const animate = () => {
-			timerRef.current.update()
-			if (!isOnScreen || document.hidden) {
-				frameIdRef.current = window.requestAnimationFrame(animate)
-				return
-			}
-
-			const delta = Math.min(timerRef.current.getDelta(), 0.1)
+		const tick = (delta) => {
 			elapsedTime += delta
 
 			if (elapsedTime >= nextSaccadeAt) {
@@ -782,7 +815,26 @@ function Mirai_chat() {
 
 			controls.update()
 			renderer.render(scene, camera)
+		}
+
+		const animate = () => {
+			timerRef.current.update()
+			if (!isOnScreen || document.hidden) {
+				frameIdRef.current = window.requestAnimationFrame(animate)
+				return
+			}
+
+			tick(Math.min(timerRef.current.getDelta(), 0.1))
 			frameIdRef.current = window.requestAnimationFrame(animate)
+		}
+
+		if (import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')) {
+			// Chạy mô phỏng theo bước cố định, độc lập với tốc độ khung hình của trình duyệt (dùng khi gỡ lỗi chuyển động).
+			window.__miraiStep = (frames, step = 1 / 60) => {
+				for (let i = 0; i < frames; i += 1) {
+					tick(step)
+				}
+			}
 		}
 
 		animate()
@@ -1006,6 +1058,11 @@ function Mirai_chat() {
 			return
 		}
 
+		// Đang chạy clip Welcome (tay đã giơ sẵn) thì không chồng thêm cử chỉ vẫy.
+		if (GREETING_PATTERN.test(nextText) && currentAnimationNameRef.current !== 'Welcome') {
+			gesturePlayer.play('wave', GESTURE_INTENSITY)
+		}
+
 		const userMessage = {
 			id: Date.now(),
 			sender: 'user',
@@ -1048,6 +1105,9 @@ function Mirai_chat() {
 			// Backend quyết định cảm xúc; null nghĩa là không có tín hiệu rõ nên giữ nguyên nét mặt.
 			const emotion = EMOTION_EXPRESSIONS.includes(reply.emotion) ? reply.emotion : null
 			if (emotion) {
+				if (emotion !== 'neutral') {
+					gesturePlayer.play(emotion, GESTURE_INTENSITY)
+				}
 				setAnimationExpression(emotion)
 				if (emotionTimeoutRef.current) {
 					window.clearTimeout(emotionTimeoutRef.current)
@@ -1175,14 +1235,14 @@ function Mirai_chat() {
 						ref={canvasRef}
 						className="chat-canvas"
 						role="img"
-						aria-label="3D avatar of Mirai"
+						aria-label="Nhân vật 3D của Mirai"
 					/>
 					{webglFailed && (
 						<div className="webgl-fallback" role="alert">
-							The 3D avatar can't be shown because WebGL is unavailable. You can still chat with Mirai.
+							Không hiển thị được nhân vật 3D vì trình duyệt không hỗ trợ WebGL. Bạn vẫn có thể trò chuyện với Mirai.
 						</div>
 					)}
-					{import.meta.env.DEV && (
+					{(import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')) && (
 					<div className='blendshape-debug'>
 						<div className='blendshape-debug-header'>
 							<button
@@ -1225,27 +1285,27 @@ function Mirai_chat() {
 			</div>
 			<div className='chat-box'>
 				<div className='title-chat-box'>
-					<div className='chat'>Chat</div>
+					<div className='chat'>Mirai</div>
 					<div className='title-chat-controls'>
 						<button
 							type='button'
 							className='mute-slide'
-							aria-label={isAudioMuted ? 'Unmute Mirai voice' : 'Mute Mirai voice'}
+							aria-label={isAudioMuted ? 'Bật giọng Mirai' : 'Tắt giọng Mirai'}
 							aria-pressed={isAudioMuted}
 							onClick={() => setIsAudioMuted((prev) => !prev)}
 						>
 							<span className={`mute-slide-track ${isAudioMuted ? 'is-muted' : 'is-unmuted'}`}>
 								<span className='mute-slide-thumb' />
 							</span>
-							<span className='mute-slide-label'>{isAudioMuted ? 'Muted' : 'Sound On'}</span>
+							<span className='mute-slide-label'>{isAudioMuted ? 'Đã tắt tiếng' : 'Có tiếng'}</span>
 						</button>
 						<button
 							type='button'
 							className='mute-slide'
 							onClick={handleClearConversation}
-							aria-label='Clear conversation'
+							aria-label='Xoá cuộc trò chuyện'
 						>
-							<span className='mute-slide-label'>Clear</span>
+							<span className='mute-slide-label'>Xoá</span>
 						</button>
 						<div style={{ display: 'flex', alignItems: 'center' }}>
 						<div className='status-color' style={{ backgroundColor: STATUS_COLORS[online_status] }} />
@@ -1262,6 +1322,7 @@ function Mirai_chat() {
 							<div
 								className={`bubble-message ${message.sender === 'user' ? 'bubble-message-user' : 'bubble-message-mirai'}`}
 							>
+								<span className='sr-only'>{message.sender === 'user' ? 'Bạn: ' : 'Mirai: '}</span>
 								{message.text}
 								{message.isError && message.retryText && (
 									<button
@@ -1270,7 +1331,7 @@ function Mirai_chat() {
 										onClick={() => handleRetryMessage(message)}
 										disabled={isLoading}
 									>
-										Retry
+										Thử lại
 									</button>
 								)}
 							</div>
@@ -1281,15 +1342,15 @@ function Mirai_chat() {
 				<div className='chat-input'>
 					<input
 						type='text'
-						placeholder='Type your message...'
+						placeholder='Nhắn gì đó cho Mirai…'
 						value={draftMessage}
 						onChange={(event) => setDraftMessage(event.target.value)}
 						onKeyDown={handleInputKeyDown}
-						aria-label='Message to Mirai'
+						aria-label='Tin nhắn gửi Mirai'
 						readOnly={isLoading}
 					/>
 					<button onClick={handleSendMessage} disabled={!draftMessage.trim() || isLoading}>
-						{isLoading ? 'Sending...' : 'Send'}
+						{isLoading ? 'Đang gửi…' : 'Gửi'}
 					</button>
 				</div>
 			</div>

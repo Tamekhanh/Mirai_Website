@@ -1,20 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import './index.css';
 
 const featureCards = [
     {
-        title: 'Chat with Mirai',
-        description: 'Start a conversation with the VRM companion and see the avatar react in real time.',
+        title: 'Trò chuyện với Mirai',
+        description: 'Bắt đầu cuộc trò chuyện và xem nhân vật 3D phản ứng, nói và đổi biểu cảm theo từng câu.',
         page: 1,
     },
     {
-        title: 'Read the project story',
-        description: 'Learn how the app is built, which assets it uses, and how the pieces fit together.',
+        title: 'Tìm hiểu về Mirai',
+        description: 'Mirai là ai, được làm bằng gì và các phần ghép lại với nhau như thế nào.',
         page: 2,
     },
     {
-        title: 'Try the music game',
-        description: 'Jump into the rhythm prototype and test the current beatmap stages.',
+        title: 'Chơi game nhạc',
+        description: 'Thử bản prototype game nhịp điệu với các màn beatmap hiện có.',
         page: 3,
     },
 ];
@@ -22,21 +23,21 @@ const featureCards = [
 const Banner = [
     {
         title: 'MirAI',
-        desc: 'Web-based 3D Interactive Avatar',
-        link: 'https://tamek-mirai.io.vn/chat',
+        desc: 'Bạn đồng hành ảo 3D chạy ngay trên trình duyệt',
+        link: '/chat',
         image: '/Banner/Banner1.png',
         banner: 1
     },
     {
         title: 'MirAI Music Game',
-        desc: 'A Rhythm Game Prototype',
-        link: 'https://tamek-mirai.io.vn/games',
+        desc: 'Bản prototype game nhịp điệu',
+        link: '/games',
         image: '/Banner/Banner2.png',
         banner: 2
     },
     {
         title: 'Project S (Prototype)',
-        desc: 'Card Game Prototype',
+        desc: 'Bản prototype game bài',
         link: 'https://www.facebook.com/share/v/1GDwqWwFaW/',
         image: '/Banner/Banner3.png',
         banner: 3
@@ -99,7 +100,7 @@ function Home({ onNavigate }) {
                     className="home-carousel"
                     role="region"
                     aria-roledescription="carousel"
-                    aria-label="Featured projects"
+                    aria-label="Dự án nổi bật"
                     onMouseEnter={() => setIsInteracting(true)}
                     onMouseLeave={() => setIsInteracting(false)}
                     onFocus={() => setIsInteracting(true)}
@@ -113,9 +114,15 @@ function Home({ onNavigate }) {
                                 <div className="home-banner-content">
                                     <h2>{banner.title}</h2>
                                     <p>{banner.desc}</p>
-                                    <a href={banner.link} target="_blank" rel="noopener noreferrer" className="home-banner-link">
-                                        Learn more
-                                    </a>
+                                    {banner.link.startsWith('/') ? (
+                                        <Link to={banner.link} className="home-banner-link">
+                                            Khám phá
+                                        </Link>
+                                    ) : (
+                                        <a href={banner.link} target="_blank" rel="noopener noreferrer" className="home-banner-link">
+                                            Xem thêm
+                                        </a>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -125,16 +132,16 @@ function Home({ onNavigate }) {
                         type="button"
                         className="home-carousel-btn pause"
                         onClick={() => setIsPlaying((playing) => !playing)}
-                        aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
+                        aria-label={isPlaying ? 'Tạm dừng trình chiếu' : 'Phát trình chiếu'}
                     >
                         {isPlaying ? '\u275A\u275A' : '\u25B6'}
                     </button>
 
                     {/* Navigation Arrows */}
-                    <button className="home-carousel-btn prev" onClick={prevSlide} aria-label="Previous slide">
+                    <button className="home-carousel-btn prev" onClick={prevSlide} aria-label="Slide trước">
                         &#10094;
                     </button>
-                    <button className="home-carousel-btn next" onClick={nextSlide} aria-label="Next slide">
+                    <button className="home-carousel-btn next" onClick={nextSlide} aria-label="Slide sau">
                         &#10095;
                     </button>
 
@@ -145,25 +152,25 @@ function Home({ onNavigate }) {
                                 key={index} 
                                 className={`home-carousel-dot ${index === currentIndex ? 'active' : ''}`}
                                 onClick={() => setCurrentIndex(index)}
-                                aria-label={`Go to slide ${index + 1}`}
+                                aria-label={`Tới slide ${index + 1}`}
                             />
                         ))}
                     </div>
                 </div>
 
                 <div className="home-copy">
-                    <p className="home-eyebrow">MirAI interactive demo</p>
-                    <h1>One place for chat, avatar, and rhythm.</h1>
+                    <p className="home-eyebrow">Bạn đồng hành ảo</p>
+                    <h1>Chào bạn, mình là Mirai.</h1>
                     <p className="home-lead">
-                        This index brings the main MirAI experiences together in a single hub: talk to the assistant,
-                        inspect the project details, or launch the music prototype.
+                        Mình nói tiếng Việt, biết biểu cảm và sống ngay trong trình duyệt của bạn. Ghé trò chuyện,
+                        xem mình được làm ra sao, hoặc thử game nhạc nhỏ của Tamek nhé.
                     </p>
                     <div className="home-actions">
                         <button type="button" className="home-primary" onClick={() => onNavigate(1)}>
-                            Open chat
+                            Trò chuyện với Mirai
                         </button>
                         <button type="button" className="home-secondary" onClick={() => onNavigate(3)}>
-                            Play music game
+                            Chơi game nhạc
                         </button>
                     </div>
                 </div>
@@ -172,11 +179,11 @@ function Home({ onNavigate }) {
             <section className="home-grid">
                 {featureCards.map((card) => (
                     <article className="home-card" key={card.title}>
-                        <p className="home-card-label">Quick start</p>
+                        <p className="home-card-label">Bắt đầu</p>
                         <h3>{card.title}</h3>
                         <p>{card.description}</p>
                         <button type="button" className="home-card-button" onClick={() => onNavigate(card.page)}>
-                            Open section
+                            Mở
                         </button>
                     </article>
                 ))}

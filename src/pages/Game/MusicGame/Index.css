@@ -173,7 +173,7 @@
     color: var(--neon-cyan);
     font-size: 0.75rem;
     font-weight: 700;
-    backdrop-filter: blur(4px);
+    
     height: fit-content;
 }
 
