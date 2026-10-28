@@ -91,7 +91,8 @@ VITE_MIRAI_MAX_WORDS=40              # word-limit hint sent in the request body
 ### Backend Contract (summary)
 
 - `POST /chat` — request `{ message, history, model, max_words, max_tokens }`, response `{ text, reply, emotion, audio, audioFormat, lipSync, sources, meta }`
-- `GET /health` — returns HTTP 200 when online
+- `POST /tts` — request `{ text }`, response `{ audio, audioFormat, audioError, lipSync }`; the frontend calls it after showing the reply so text is not delayed by speech synthesis (`/chat` also accepts `tts: false`)
+- `GET /health` — returns HTTP 200 when online, 503 while the model is loading
 - `GET /history` (optional) — returns `{ messages: [...] }`
 
 See [SETUP_SERVER.md](SETUP_SERVER.md) for the full spec and troubleshooting.
@@ -129,7 +130,7 @@ npm run preview   # vite build && wrangler dev
 ## Notes & Current Limits
 
 - The About page is informational; it doesn't expose runtime metrics.
-- The blend-shape debug controls are still visible on the chat page and should be hidden for production.
+- The blend-shape debug panel is only rendered in the dev server (`import.meta.env.DEV`); it is not part of production builds.
 - The backend contract is intentionally simple — richer memory/history features are room for growth.
 - The music game shows "Coming Soon" while some songs are restricted by copyright.
 

@@ -2,14 +2,13 @@ import './About.css'
 
 function About() {
 	return (
-		<main className="about-page">
+		<div className="about-page">
 			<section className="about-hero">
 				<p className="about-eyebrow">About this project</p>
 				<h1>Web-based 3D Interactive Avatar & Game Hub</h1>
 				<p className="about-lead">
 					This app combines a React frontend, a Three.js VRM avatar, and a backend chat API to deliver a
-					conversation experience that feels alive. The current build is focused on local development and
-					Hugging Face deployment.
+					conversation experience that feels alive. The site runs on Cloudflare, and the chat model is hosted on a Hugging Face Space.
 				</p>
 				<div className="about-actions">
 					<a className="about-button about-button-primary" href="#details">
@@ -45,10 +44,10 @@ function About() {
 					<h2>Simple API surface</h2>
 					<p>
 						The frontend talks to <span className="about-inline-code">POST /chat</span>,
-						<span className="about-inline-code">GET /health</span>, and optionally
-						<span className="about-inline-code">GET /history</span> through same-origin routing. Any Hugging Face token stays in a
-						Cloudflare Worker secret instead of a client-side <span className="about-inline-code">VITE_</span>
-						variable.
+							<span className="about-inline-code">POST /tts</span>, and
+							<span className="about-inline-code">GET /health</span> through a Cloudflare Worker that proxies to the
+							backend. The upstream key stays in a Worker secret instead of a client-side
+							<span className="about-inline-code">VITE_</span> variable.
 					</p>
 				</article>
 
@@ -57,9 +56,9 @@ function About() {
 					<h2>What already works well</h2>
 					<ul className="about-list">
 						<li>VRM loading with progress and retry state</li>
-						<li>Online/offline server status indicator</li>
-						<li>Audio replies and lip-sync support</li>
-						<li>Blend-shape debug controls for development</li>
+						<li>Online / Starting / Offline server status indicator</li>
+							<li>Text replies appear first; speech and lip-sync load right after</li>
+							<li>Idle animation retargeted onto the VRM skeleton</li>
 					</ul>
 				</article>
 			</section>
@@ -72,7 +71,7 @@ function About() {
 				<div className="about-stack">
 					<div className="about-stack-item">
 						<span>Frontend</span>
-						<p>React 19 with Vite, styling in plain CSS, and a single-page layout that swaps between Chat and About.</p>
+						<p>React 19 with Vite, styling in plain CSS, and a routed pages for Home, Chat, About, and Games.</p>
 					</div>
 					<div className="about-stack-item">
 						<span>Avatar layer</span>
@@ -80,7 +79,7 @@ function About() {
 					</div>
 					<div className="about-stack-item">
 						<span>Conversation layer</span>
-						<p>The chat service wraps fetch with timeout and health checks so the UI can respond gracefully to failures.</p>
+						<p>The chat service wraps fetch with timeouts, health checks, and a separate speech request so the UI can respond gracefully to failures.</p>
 					</div>
 				</div>
 			</section>
@@ -91,7 +90,7 @@ function About() {
 					<h2>Created with VRoid Studio</h2>
 				</div>
 				<div className= "about-vroid">
-					<img className="about-vroid-img" src="/About/Vroid.png" alt="Mirai 3D Model" />
+					<img className="about-vroid-img" src="/About/Vroid.png" alt="Mirai 3D Model" width="1200" height="630" loading="lazy" decoding="async" />
 					<p className= "about-vroid-description">
 						Mirai's visual identity is crafted using VRoid Studio, allowing for a high-fidelity anime aesthetic with full customization. 
 						By leveraging the VRM standard, the model seamlessly integrates with Three.js, enabling real-time animations, expressive blend-shapes, and fluid lip-syncing that bring the character to life in the browser.
@@ -106,7 +105,7 @@ function About() {
 					<h2>Using Llama 3 8B - Q4 K M (Fine-tuning)</h2>
 				</div>
 				<div className= "about-AI-model">
-					<img className="about-AI-model-img" src="/About/LLama38b.png" alt="Llama 3 8B" />
+					<img className="about-AI-model-img" src="/About/LLama38b.png" alt="Llama 3 8B" width="300" height="168" loading="lazy" decoding="async" />
 					<p className= "about-AI-model-description">
 						The intelligence behind Mirai is powered by Llama 3 8B, optimized with Q4_K_M quantization. 
 						This specific configuration strikes the perfect balance between cognitive reasoning and inference speed, ensuring that Mirai can maintain contextually aware, natural conversations while remaining efficient enough for scalable deployment.
@@ -120,7 +119,7 @@ function About() {
 					<p className="about-card-label">Deployment</p>
 					<h2>What needs to be in place before shipping</h2>
 					<ol className="about-steps">
-						<li>Deploy the Worker so <span className="about-inline-code">/chat</span> and <span className="about-inline-code">/health</span> proxy to the Hugging Face Space.</li>
+						<li>Deploy the backend Space first, then the Worker so <span className="about-inline-code">/chat</span>, <span className="about-inline-code">/tts</span> and <span className="about-inline-code">/health</span> proxy to it.</li>
 						<li>Store the upstream token with <span className="about-inline-code">wrangler secret put SPACE_API_KEY</span>.</li>
 						<li>Keep the VRM and animation files under <span className="about-inline-code">public/Mirai_Assets</span>.</li>
 						<li>Build the frontend with <span className="about-inline-code">npm run build</span>.</li>
@@ -133,12 +132,12 @@ function About() {
 					<ul className="about-list">
 						<li>The About page is informational only and does not yet expose runtime metrics.</li>
 						<li>Server health is cached, so status can lag briefly after a reconnect.</li>
-						<li>Debug blend-shape controls are still visible in the chat page and should be hidden for production.</li>
+						<li>On the free CPU Space a reply can take around 10–30 seconds, and longer right after the Space wakes up.</li>
 						<li>The backend contract is intentionally simple, so richer memory/history features are still room for growth.</li>
 					</ul>
 				</div>
 			</section>
-		</main>
+		</div>
 	)
 }
 

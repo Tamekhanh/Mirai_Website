@@ -2,6 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    /* Màu lấy từ tóc xanh của Mirai và ánh nắng ấm trong căn phòng. Đã đo tương phản WCAG:
+       chữ #eef3f2 / #a9bbbf trên #172023 = 14.8 / 8.3, chữ tối trên nút primary = 7.4.
+       Không đặt chữ trắng trên --primary (2.2:1). */
+    --bg: #0f1416;
+    --surface: #172023;
+    --surface-2: #1f2a2e;
+    --border: rgba(255, 255, 255, 0.1);
+    --text: #eef3f2;
+    --text-muted: #a9bbbf;
+    --primary: #5fb8e6;
+    --primary-strong: #3f9ccf;
+    --on-primary: #06222f;
+    --accent: #f2a65a;
+    --on-accent: #1b1206;
+    --ok: #6ee7a8;
+    --danger: #ff6b81;
+
+    --font-ui: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+
+    --r-sm: 8px;
+    --r-md: 14px;
+    --r-lg: 22px;
+    --r-pill: 999px;
+
+    --shadow-1: 0 4px 16px rgba(0, 0, 0, 0.35);
+    --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+    --touch-target: 44px;
+}
+
+body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, button, input, textarea, select {
+    font-family: inherit;
+}
+
+/* Nhảy thẳng tới nội dung cho người dùng bàn phím / trình đọc màn hình. */
+.skip-link {
+    position: absolute;
+    left: 12px;
+    top: -48px;
+    z-index: 1000;
+    padding: 10px 16px;
+    border-radius: var(--r-sm);
+    background: var(--primary);
+    color: var(--on-primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.skip-link:focus {
+    top: 8px;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 header{
     display: flex;
     justify-content: space-between;

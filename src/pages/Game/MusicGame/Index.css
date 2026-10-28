@@ -12,16 +12,34 @@
 }
 
 .music-game-index {
+    /* Màn chọn bài dùng token chung; gán lại trong phạm vi này để không đổi màu phần chơi (MusicGame.css). */
+    --neon-cyan: var(--primary);
+    --neon-pink: var(--danger);
+    --neon-yellow: var(--accent);
+    --dark-bg: var(--bg);
+    --card-bg: rgba(23, 32, 35, 0.92);
+    --glass-border: var(--border);
+
     width: 100%;
     height: 100vh;
+    height: 100dvh;
     padding: 40px 20px;
     display: flex;
     justify-content: center;
-    background: var(--dark-bg);
-    color: #f8fbff;
+    background: var(--bg);
+    color: var(--text);
     overflow-y: auto;
     position: relative;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-ui);
+}
+
+/* Trên điện thoại body đã tự cuộn: bỏ khung cuộn riêng để không bị thanh cuộn kép. */
+@media (max-width: 900px) {
+    .music-game-index {
+        height: auto;
+        min-height: 100dvh;
+        overflow: visible;
+    }
 }
 
 /* Background Effects */
@@ -38,7 +56,8 @@
 .top-left {
     top: -100px;
     left: -100px;
-    background: var(--neon-pink);
+    background: var(--accent);
+    opacity: 0.18;
 }
 .bottom-right {
     bottom: -100px;
@@ -79,40 +98,18 @@
 
 .music-game-index__hero h1 {
     margin: 0;
-    font-size: clamp(2.5rem, 6vw, 4rem);
-    font-weight: 900;
-    line-height: 1;
-    background: linear-gradient(to right, #fff, var(--neon-cyan));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.05;
+    color: var(--text);
 }
 
 .music-game-index__lead {
     margin: 0;
     max-width: 50ch;
-    font-size: 1.1rem;
-    color: rgba(241, 246, 255, 0.6);
+    font-size: 1.05rem;
+    color: var(--text-muted);
     line-height: 1.6;
-}
-
-.hero-decoration {
-    position: relative;
-    width: 120px;
-    height: 120px;
-}
-
-.deco-circle {
-    width: 100%;
-    height: 100%;
-    border: 2px solid var(--neon-cyan);
-    border-radius: 50%;
-    animation: rotateCircle 10s linear infinite;
-    box-shadow: 0 0 20px var(--neon-cyan);
-}
-
-@keyframes rotateCircle {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
 }
 
 /* Grid & Cards */
@@ -127,14 +124,13 @@
     border-radius: 24px;
     border: 1px solid var(--glass-border);
     overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
-    backdrop-filter: blur(10px);
 }
 
 .stage-card:hover {
-    transform: translateY(-10px) scale(1.02);
+    transform: translateY(-4px);
     border-color: var(--neon-cyan);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(132, 231, 255, 0.2);
 }
@@ -181,32 +177,39 @@
     height: fit-content;
 }
 
-.stage-card__difficulty-medium {border-color: rgba(255, 255, 0, 0.8); color: var(--neon-yellow); }
-.stage-card__difficulty-hard {border-color: rgba(255, 0, 0, 0.8); color: var(--neon-pink); }
+.stage-card__difficulty-medium { border-color: var(--accent); color: var(--accent); }
+.stage-card__difficulty-hard { border-color: var(--danger); color: var(--danger); }
 
+/* Luôn hiện: trước đây opacity:0 cho tới khi hover nên không dùng được trên cảm ứng / bàn phím. */
 .stage-card__play-btn {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    opacity: 0;
-    transition: all 0.3s ease;
-    padding: 12px 24px;
-    border-radius: 12px;
+    right: 14px;
+    bottom: 14px;
+    min-height: var(--touch-target);
+    padding: 10px 22px;
+    border-radius: var(--r-pill);
     border: none;
-    background: var(--neon-cyan);
-    color: #000;
+    background: var(--primary);
+    color: var(--on-primary);
     font-weight: 800;
+    font-size: 1rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
     z-index: 2;
+    box-shadow: var(--shadow-1);
+    transition: background-color 0.15s ease, transform 0.15s ease;
 }
 
-.stage-card:hover .stage-card__play-btn {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+.stage-card__play-btn:hover {
+    background: var(--primary-strong);
+    transform: translateY(-1px);
+}
+
+.stage-card__play-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
 }
 
 .play-icon {
@@ -228,7 +231,7 @@
 }
 
 .stage-card__id {
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     color: var(--neon-cyan);
     letter-spacing: 0.1em;
     font-weight: 700;
@@ -242,8 +245,8 @@
 
 .stage-card__description {
     margin: 0;
-    font-size: 0.9rem;
-    color: rgba(241, 246, 255, 0.5);
+    font-size: 0.95rem;
+    color: var(--text-muted);
     line-height: 1.5;
     height: 2.7em;
     overflow: hidden;
@@ -270,15 +273,15 @@
 }
 
 .stat-pill span {
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    color: rgba(241, 246, 255, 0.4);
+    color: var(--text-muted);
     margin-bottom: 2px;
 }
 
 .stat-pill strong {
-    font-size: 0.9rem;
-    color: #fff;
+    font-size: 0.95rem;
+    color: var(--text);
 }
 
 @media (max-width: 768px) {
@@ -308,8 +311,7 @@
     padding: 48px 24px;
     border-radius: 24px;
     border: 1px dashed var(--glass-border);
-    background: rgba(15, 20, 35, 0.4);
-    backdrop-filter: blur(8px);
+    background: transparent;
 }
 
 .music-game-index__coming-soon h2 {
@@ -321,7 +323,7 @@
 
 .music-game-index__coming-soon p {
     margin: 6px 0;
-    color: rgba(241, 246, 255, 0.6);
+    color: var(--text-muted);
     line-height: 1.6;
 }
 
@@ -351,6 +353,7 @@
     z-index: 1;
     width: min(560px, 100%);
     max-height: 90vh;
+    max-height: 90dvh;
     overflow-y: auto;
     background: linear-gradient(180deg, rgba(20, 26, 45, 0.95), rgba(12, 16, 28, 0.98));
     border: 1px solid var(--glass-border);
@@ -430,7 +433,7 @@
 .copyright-warning-modal__actions .btn-secondary {
     padding: 12px 22px;
     background: rgba(255, 255, 255, 0.06);
-    color: rgba(241, 246, 255, 0.8);
+    color: var(--text);
     border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -441,14 +444,17 @@
 
 .copyright-warning-modal__actions .btn-primary {
     padding: 12px 24px;
-    background: var(--neon-cyan);
-    color: #000;
-    box-shadow: 0 0 18px rgba(132, 231, 255, 0.4);
+    background: var(--primary);
+    color: var(--on-primary);
 }
 
 .copyright-warning-modal__actions .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 26px rgba(132, 231, 255, 0.6);
+    background: var(--primary-strong);
+}
+
+.copyright-warning-modal__actions button:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
 }
 
 @media (max-width: 600px) {

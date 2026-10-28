@@ -8,13 +8,18 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background-color: black;
-  color: white;
+  /* Nền đặc (không blur): header nằm cạnh canvas WebGL, blur sẽ ép composite lại mỗi khung hình. */
+  background-color: var(--bg);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
   height: 50px;
 }
 
 .title {
   margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
 .container {
@@ -23,22 +28,24 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  background-color: black;
+  background-color: var(--bg);
 }
 .nav-btn {
   background-color: transparent;
   border: none;
-  color: white;
-  font-size: 16px;
+  color: var(--text-muted);
+  font-size: 15px;
   cursor: pointer;
   height: 100%;
-  font-weight: bold;
-  padding: 0px 24px;
-  border-radius: 12px ;
+  font-weight: 600;
+  padding: 0px 20px;
+  border-radius: var(--r-pill);
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 .nav-btn:hover {
-  background-color: gray;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text);
 }
 
 a.nav-btn {
@@ -48,16 +55,17 @@ a.nav-btn {
 }
 
 .nav-btn.active {
-  background-color: rgba(255, 255, 255, 0.18);
+  background-color: rgba(95, 184, 230, 0.16);
+  color: var(--primary);
 }
 
 .nav-btn:focus-visible {
-  outline: 2px solid #22d3ee;
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .route-loading {
-  color: #cbd5e1;
+  color: var(--text-muted);
   padding: 24px;
 }
 .nav{
@@ -79,6 +87,8 @@ a.nav-btn {
   padding: 12px 0px;
   gap: 12px;
   overflow: hidden;
+  /* Đích của skip link: không vẽ viền khi được focus bằng script. */
+  outline: none;
 }
 
 @media (max-width: 900px) {
@@ -113,9 +123,11 @@ a.nav-btn {
     gap: 4px;
   }
 
+  /* Vùng chạm tối thiểu 44px trên điện thoại. */
   .nav-btn {
     height: auto;
-    padding: 8px 14px;
-    font-size: 14px;
+    min-height: var(--touch-target);
+    padding: 8px 16px;
+    font-size: 15px;
   }
 }

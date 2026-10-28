@@ -12,6 +12,8 @@ const getModels = (env) => {
 
 const MAX_BODY_BYTES = 16 * 1024
 const MAX_MESSAGE_CHARS = 1000
+const MAX_TTS_CHARS = 1000
+const TTS_TIMEOUT_MS = 30000
 const MAX_HISTORY_ITEMS = 12
 const MAX_HISTORY_CHARS = 500
 const HEALTH_CACHE_SECONDS = 30
@@ -80,44 +82,52 @@ const isCrossOrigin = (request, url) => {
   return Boolean(origin) && origin !== url.origin
 }
 
-const isRateLimited = async (request, env) => {
+const isRateLimited = async (request, env, scope = '') => {
   if (!env?.CHAT_LIMITER) {
     return false
   }
 
-  const key = request.headers.get('cf-connecting-ip') ?? 'anonymous'
+  const key = (request.headers.get('cf-connecting-ip') ?? 'anonymous') + scope
   const { success } = await env.CHAT_LIMITER.limit({ key })
   return !success
 }
 
-const handleChat = async (request, env, url) => {
+// Kiểm tra chung cho các route POST: method, origin, rate limit, kích thước và JSON hợp lệ.
+// Trả về { body } khi hợp lệ, hoặc { response } là lỗi để trả thẳng cho client.
+const readGuardedJson = async (request, env, url, limiterScope = '') => {
   if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, 405)
+    return { response: json({ error: 'Method not allowed' }, 405) }
   }
 
   if (isCrossOrigin(request, url)) {
-    return json({ error: 'Forbidden origin' }, 403)
+    return { response: json({ error: 'Forbidden origin' }, 403) }
   }
 
-  if (await isRateLimited(request, env)) {
-    return json({ error: 'Too many requests' }, 429)
+  if (await isRateLimited(request, env, limiterScope)) {
+    return { response: json({ error: 'Too many requests' }, 429) }
   }
 
   const declaredLength = Number(request.headers.get('content-length'))
   if (declaredLength > MAX_BODY_BYTES) {
-    return json({ error: 'Payload too large' }, 413)
+    return { response: json({ error: 'Payload too large' }, 413) }
   }
 
   const rawBody = await request.text()
   if (new TextEncoder().encode(rawBody).length > MAX_BODY_BYTES) {
-    return json({ error: 'Payload too large' }, 413)
+    return { response: json({ error: 'Payload too large' }, 413) }
   }
 
-  let body
   try {
-    body = JSON.parse(rawBody)
+    return { body: JSON.parse(rawBody) }
   } catch {
-    return json({ error: 'Invalid JSON' }, 400)
+    return { response: json({ error: 'Invalid JSON' }, 400) }
+  }
+}
+
+const handleChat = async (request, env, url) => {
+  const { body, response } = await readGuardedJson(request, env, url)
+  if (response) {
+    return response
   }
 
   const message = String(body?.message ?? '').trim().slice(0, MAX_MESSAGE_CHARS)
@@ -135,6 +145,11 @@ const handleChat = async (request, env, url) => {
     // Backend tự dựng chỉ dẫn độ dài từ max_words; không gửi instruction để tránh tiêm system prompt.
     max_words: maxWords,
     max_tokens: maxTokens,
+  }
+
+  // Client tách TTS ra khỏi /chat bằng tts=false để chữ hiện ngay; mặc định giữ hành vi cũ.
+  if (body.tts === false) {
+    payload.tts = false
   }
 
   const startedAt = Date.now()
@@ -164,6 +179,32 @@ const handleChat = async (request, env, url) => {
     const status = timedOut ? 504 : 502
     logChat(status)
     return json({ error: timedOut ? 'Upstream timeout' : 'Upstream unavailable' }, status)
+  }
+}
+
+const handleTts = async (request, env, url) => {
+  // Bucket rate limit riêng để mỗi lượt chat (chat + tts) không ăn đôi hạn mức của /chat.
+  const { body, response } = await readGuardedJson(request, env, url, ':tts')
+  if (response) {
+    return response
+  }
+
+  const text = String(body?.text ?? '').trim().slice(0, MAX_TTS_CHARS)
+  if (!text) {
+    return json({ error: 'Text is required' }, 400)
+  }
+
+  try {
+    const upstream = await fetch(new URL('/tts', resolveUpstream(env, body.model)), {
+      method: 'POST',
+      headers: buildUpstreamHeaders(env),
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(TTS_TIMEOUT_MS)]),
+    })
+    return toClientResponse(upstream)
+  } catch (error) {
+    const timedOut = error?.name === 'TimeoutError'
+    return json({ error: timedOut ? 'Upstream timeout' : 'Upstream unavailable' }, timedOut ? 504 : 502)
   }
 }
 
@@ -217,6 +258,10 @@ export default {
 
     if (url.pathname === '/chat' || url.pathname === '/api/chat') {
       return handleChat(request, env, url)
+    }
+
+    if (url.pathname === '/tts' || url.pathname === '/api/tts') {
+      return handleTts(request, env, url)
     }
 
     if (url.pathname === '/health' || url.pathname === '/api/health') {

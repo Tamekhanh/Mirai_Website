@@ -73,9 +73,6 @@ function Index() {
 							Choose a stage to test your rhythm skills! Each stage features a unique track and beatmap. Can you master them all?
 						</p>
 					</div>
-					<div className="hero-decoration">
-						<div className="deco-circle"></div>
-					</div>
 				</header>
 
 				<div className="music-game-index__grid">

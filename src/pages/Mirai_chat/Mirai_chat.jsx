@@ -11,29 +11,24 @@ import {
 	VRMLookAtQuaternionProxy,
 	createVRMAnimationClip,
 } from '@pixiv/three-vrm-animation'
-import { sendMessage, checkServerStatus } from '../../services/chatApi'
+import { fetchSpeech, sendMessage } from '../../services/chatApi'
 import VRMLoadingScreen from '../../components/VRMLoadingScreen'
+import { retargetMixamoClip } from './mixamoRetarget'
+import {
+	CHAT_STORAGE_KEY,
+	GREETING_MESSAGE,
+	MAX_STORED_MESSAGES,
+	buildHistory,
+	getErrorMessageText,
+	loadStoredMessages,
+	resolveAudioSrc,
+} from './chatHelpers'
+import { getAvailableBlendShapes, stabilizeVrmMeshes } from './vrmHelpers'
+import { STATUS_COLORS, useServerStatus } from './useServerStatus'
 
 const DEFAULT_VRM_PATH = `${import.meta.env.BASE_URL}Mirai_Assets/Mirai_Model_casual.vrm`
 
 const DEFAULT_IMG_BACKGROUND = `${import.meta.env.BASE_URL}Mirai_Assets/room.png`
-
-const DEFAULT_BLEND_SHAPE_PRESETS = [
-	'neutral',
-	'happy',
-	'angry',
-	'sad',
-	'relaxed',
-	'surprised',
-	'aa',
-	'ih',
-	'ou',
-	'ee',
-	'oh',
-	'blink',
-	'blinkLeft',
-	'blinkRight',
-]
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value))
 
@@ -58,169 +53,14 @@ const AnimationURLs = {
 const AnimationWithExpression = {
 	Welcome: ['happy', AnimationURLs.Welcome],
 	Idle: ['', AnimationURLs.Idle],
-	IdleFallback: [''],
 }
 
 const EMOTION_EXPRESSIONS = ['neutral', 'happy', 'angry', 'sad', 'relaxed', 'surprised']
 
-const CHAT_STORAGE_KEY = 'mirai-chat-messages'
-const MAX_STORED_MESSAGES = 50
-const HISTORY_MESSAGES = 12 // 6 hỏi–đáp gần nhất
 const EMOTION_HOLD_MS = 5000
-const HEALTH_POLL_MS = 60000
-
-const GREETING_MESSAGE = {
-	id: 1,
-	sender: 'mirai',
-	text: 'Xin chào! Mình là Mirai. Rất vui được gặp bạn nhé!',
-}
-
-// Dự phòng khi backend không trả `emotion`; backend mới đã tự suy ra cảm xúc tiếng Việt.
-// Không chắc thì trả về null (giữ nguyên nét mặt hiện tại). \b không dùng được với chữ có dấu
-// nên dùng lookaround theo Unicode.
-const word = (list) => new RegExp(`(?<![\\p{L}\\p{N}])(?:${list.join('|')})(?![\\p{L}\\p{N}])`, 'iu')
-const EMOTION_RULES = [
-	['surprised', word(['ồ', 'ôi', 'úi', 'wow', 'trời ơi', 'thật sao', 'bất ngờ', 'không ngờ'])],
-	['angry', word(['tức giận', 'bực mình', 'giận', 'ghét', 'khó chịu', 'quá đáng'])],
-	['sad', word(['buồn', 'rất tiếc', 'thất vọng', 'tuyệt vọng', 'cô đơn', 'khóc', 'đau lòng', 'rất nhớ', 'huhu']), /T_T|;_;|😢|😭/],
-	['happy', word(['haha', 'hihi', 'hehe', 'vui', 'mừng', 'tuyệt vời', 'cảm ơn', 'hân hạnh', 'dễ thương']), /:\)|😊|😄|😁|\^_\^/],
-	['relaxed', word(['bình tĩnh', 'thư giãn', 'yên tâm', 'đừng lo', 'đừng buồn', 'không sao', 'ổn thôi']), /😌/],
-]
-
-const detectEmotion = (text) => {
-	const normalized = String(text ?? '').normalize('NFC')
-	const match = EMOTION_RULES.find(([, ...patterns]) => patterns.some((pattern) => pattern.test(normalized)))
-	return match ? match[0] : null
-}
-
-const getErrorMessageText = (error) => {
-	if (error?.name === 'ChatTimeoutError') {
-		return 'Xin lỗi, máy chủ phản hồi quá lâu. Có thể Mirai đang thức dậy, bạn thử lại sau một phút nhé.'
-	}
-
-	switch (error?.status) {
-		case 413:
-			return 'Tin nhắn dài quá, bạn thử rút gọn rồi gửi lại nhé.'
-		case 429:
-			return 'Bạn gửi hơi nhanh, đợi một chút rồi thử lại nhé.'
-		case 502:
-		case 503:
-		case 504:
-			return 'Mirai đang khởi động hoặc đang bận, bạn thử lại sau chút nhé.'
-		default:
-			return 'Xin lỗi, mình chưa kết nối được máy chủ. Bạn thử lại sau nhé.'
-	}
-}
-
-const loadStoredMessages = () => {
-	try {
-		const stored = JSON.parse(window.localStorage.getItem(CHAT_STORAGE_KEY) || 'null')
-		if (Array.isArray(stored) && stored.length > 0) {
-			return stored
-				.filter(
-					(message) =>
-						message &&
-						(message.sender === 'user' || message.sender === 'mirai') &&
-						typeof message.text === 'string' &&
-						!message.pending
-				)
-				// Lời chào cũ (tiếng Anh) được thay bằng lời chào hiện tại.
-				.map((message) => (message.id === GREETING_MESSAGE.id ? GREETING_MESSAGE : message))
-		}
-	} catch {
-		// localStorage unavailable or corrupted: start fresh
-	}
-	return [GREETING_MESSAGE]
-}
-
-const buildHistory = (messages) =>
-	messages
-		.filter((message) => !message.pending && !message.isError && message.id !== GREETING_MESSAGE.id)
-		.slice(-HISTORY_MESSAGES)
-		.map((message) => ({
-			role: message.sender === 'user' ? 'user' : 'assistant',
-			content: message.text,
-		}))
-
-const getAvailableBlendShapes = (expressionManager) => {
-	if (!expressionManager) {
-		return []
-	}
-
-	const names = new Set()
-
-	if (expressionManager.expressionMap && typeof expressionManager.expressionMap === 'object') {
-		Object.keys(expressionManager.expressionMap).forEach((name) => names.add(name))
-	}
-
-	if (expressionManager._expressionMap && typeof expressionManager._expressionMap === 'object') {
-		Object.keys(expressionManager._expressionMap).forEach((name) => names.add(name))
-	}
-
-	if (Array.isArray(expressionManager.expressions)) {
-		expressionManager.expressions.forEach((expression) => {
-			if (expression?.expressionName) {
-				names.add(expression.expressionName)
-			}
-		})
-	}
-
-	DEFAULT_BLEND_SHAPE_PRESETS.forEach((name) => names.add(name))
-
-	return Array.from(names)
-}
-
-const stabilizeVrmMeshes = (vrm) => {
-	if (!vrm?.scene) {
-		return
-	}
-
-	vrm.scene.traverse((node) => {
-		if (!node?.isMesh) {
-			return
-		}
-
-		// Skinned meshes in animated avatars can be incorrectly frustum-culled.
-		node.frustumCulled = false
-	})
-}
-
-// Harden the VRM's cel-shading on every MToon material:
-//   shadingToony = 0  (shade softness 0  -> hard edge, no toon softness)
-//   shadingShift = -1 (shading area -1   -> push lit/unlit boundary into shadow)
-// "shading hardness 1" is the hard end of the same dial as softness, so toony = 0
-// already gives maximum hardness.
-const applyVrmShadingPreset = (vrm) => {
-	if (!vrm?.scene) {
-		return
-	}
-
-	vrm.scene.traverse((node) => {
-		if (!node?.isMesh) {
-			return
-		}
-
-		const materials = Array.isArray(node.material) ? node.material : [node.material]
-
-		materials.forEach((material) => {
-			if (!material) {
-				return
-			}
-
-			const isMToon =
-				typeof material.shadingToony === 'number' &&
-				typeof material.shadingShift === 'number'
-
-			if (!isMToon) {
-				return
-			}
-
-			material.shadingToony = 0
-			material.shadingShift = -1
-			material.needsUpdate = true
-		})
-	})
-}
+const REST_ARM_DROP = 1.2 // rad: hạ cánh tay từ T-pose xuống dáng đứng tự nhiên
+const REST_ELBOW_BEND = 0.2
+const IDLE_SMILE = 0.14 // nét cười rất nhẹ khi không có cảm xúc nào đang giữ: mặt trung tính hoàn toàn trông vô hồn
 
 function Mirai_chat() {
 	const canvasRef = useRef(null)
@@ -242,7 +82,9 @@ function Mirai_chat() {
 	const animationPlayVersionRef = useRef(0)
 	const messagesEndRef = useRef(null)
 	const chatAbortRef = useRef(null)
+	const speechAbortRef = useRef(null)
 	const emotionTimeoutRef = useRef(null)
+	const emotionActiveRef = useRef(false)
 	const [messages, setMessages] = useState(loadStoredMessages)
 	const [draftMessage, setDraftMessage] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
@@ -250,7 +92,7 @@ function Mirai_chat() {
 	useEffect(() => {
 		isThinkingRef.current = isLoading
 	}, [isLoading])
-	const [online_status, setOnlineStatus] = useState('Offline')
+	const online_status = useServerStatus()
 	const [vrmLoadingProgress, setVrmLoadingProgress] = useState(0)
 	const [vrmLoadingError, setVrmLoadingError] = useState(false)
 	const [shouldShowVrmLoader, setShouldShowVrmLoader] = useState(true)
@@ -318,6 +160,7 @@ function Mirai_chat() {
 		if (expressionName && availableShapes.has(expressionName)) {
 			nextValues[expressionName] = 0.5
 		}
+		emotionActiveRef.current = Boolean(expressionName && availableShapes.has(expressionName))
 
 		if (Object.keys(nextValues).length === 0) {
 			return
@@ -378,35 +221,14 @@ function Mirai_chat() {
 				loader.load(animationUrl, resolve, undefined, reject)
 			})
 
-			const rawClip = object3d.animations?.[0]
-			if (!rawClip) {
-				throw new Error(`No animation clip found in ${animationUrl}`)
-			}
-
-			const vrmNodeNames = new Set()
-			vrm.scene.traverse((node) => {
-				if (node.name) {
-					vrmNodeNames.add(node.name)
-				}
-			})
-
-			const compatibleTracks = rawClip.tracks.filter((track) => {
-				const targetNodeName = track.name.split('.')[0]
-				return vrmNodeNames.has(targetNodeName)
-			})
-
-			if (compatibleTracks.length === 0) {
-				throw new Error(`FBX clip is not compatible with this VRM rig: ${animationUrl}`)
-			}
-
-			return new THREE.AnimationClip(rawClip.name || 'fbx_clip', rawClip.duration, compatibleTracks)
+			// FBX từ Mixamo: tên xương khác VRM nên phải retarget sang humanoid của VRM.
+			return retargetMixamoClip(object3d, vrm)
 		}
 
 		throw new Error(`Unsupported animation format: ${animationUrl}`)
 	}
 
-	const playAnimationWithExpression = async (animationName, options = {}) => {
-		const { skipIdleFallback = false } = options
+	const playAnimationWithExpression = async (animationName) => {
 		const animationConfig = AnimationWithExpression[animationName]
 		if (!animationConfig) {
 			return
@@ -454,7 +276,7 @@ function Mirai_chat() {
 			action.timeScale = 1
 			action.setEffectiveWeight(1)
 
-			const isIdleAnimation = animationName === 'Idle' || animationName === 'IdleFallback'
+			const isIdleAnimation = animationName === 'Idle'
 			action.setLoop(isIdleAnimation ? THREE.LoopRepeat : THREE.LoopOnce, isIdleAnimation ? Infinity : 1)
 			action.clampWhenFinished = !isIdleAnimation
 			action.play()
@@ -502,36 +324,9 @@ function Mirai_chat() {
 				mixer.addEventListener('finished', handleFinished)
 			}
 		} catch (error) {
-			if (animationName === 'Idle' && !skipIdleFallback) {
-				console.warn('Idle.fbx is incompatible. Falling back to VRMA idle loop.')
-				void playAnimationWithExpression('IdleFallback', { skipIdleFallback: true })
-				return
-			}
-
-			console.error(`Cannot play animation \"${animationName}\":`, error)
+			console.error(`Cannot play animation "${animationName}":`, error)
 		}
 	}
-
-	// Check server status on mount and periodically
-	useEffect(() => {
-		const checkStatus = async () => {
-			if (document.hidden) {
-				return
-			}
-
-			const isOnline = await checkServerStatus()
-			setOnlineStatus(isOnline ? 'Online' : 'Offline')
-		}
-
-		checkStatus()
-		const statusInterval = setInterval(checkStatus, HEALTH_POLL_MS)
-		document.addEventListener('visibilitychange', checkStatus)
-
-		return () => {
-			clearInterval(statusInterval)
-			document.removeEventListener('visibilitychange', checkStatus)
-		}
-	}, [])
 
 	const loadVrmFromUrl = async ({ url, revokeAfterLoad = false }) => {
 		if (!sceneRef.current) {
@@ -602,7 +397,6 @@ function Mirai_chat() {
 			vrm.scene.rotation.y = 0
 			vrm.scene.position.set(0, 0.2, 0)
 			stabilizeVrmMeshes(vrm)
-			applyVrmShadingPreset(vrm)
 
 			sceneRef.current.add(vrm.scene)
 			currentVrmRef.current = vrm
@@ -698,17 +492,24 @@ function Mirai_chat() {
 		renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio))
 		renderer.outputColorSpace = THREE.SRGBColorSpace
 
-		const hemiLight = new THREE.HemisphereLight(0xffffff, 0x334155, 1.2)
+		// Lighting follows the room backdrop: warm afternoon sun through the window on the right,
+		// wood-floor bounce from below, and a faint cool sky fill on the shadow side. Neutral white
+		// light against a warm room is what made the face look pale and pasted-on.
+		const hemiLight = new THREE.HemisphereLight(0xfff9f2, 0x7a5a42, 0.95)
 		hemiLight.position.set(0, 2, 0)
 		scene.add(hemiLight)
 
-		const dirLight = new THREE.DirectionalLight(0xffffff, 1.8)
-		dirLight.position.set(1, 2, 2)
+		const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5)
+		dirLight.position.set(2, 1.8, 1.6)
 		scene.add(dirLight)
 
+		const fillLight = new THREE.DirectionalLight(0xd2e2ff, 0.45)
+		fillLight.position.set(-1.6, 1.2, 2)
+		scene.add(fillLight)
+
 		// Rim light from behind gives the avatar an outline that separates it from the backdrop.
-		const rimLight = new THREE.DirectionalLight(0x9ec5ff, 0.9)
-		rimLight.position.set(-1.5, 2.2, -1.5)
+		const rimLight = new THREE.DirectionalLight(0xffe4c8, 0.6)
+		rimLight.position.set(1.5, 2.2, -1.5)
 		scene.add(rimLight)
 
 		const grid = new THREE.GridHelper(8, 16, 0x334155, 0x1e293b)
@@ -767,6 +568,12 @@ function Mirai_chat() {
 		let elapsedTime = 0
 		let nextBlinkAt = 2 + Math.random() * 3
 		let blinkProgress = -1
+		let idleSmile = 0
+
+		// Saccade: mắt thỉnh thoảng đảo nhẹ quanh điểm đang nhìn, người thật không bao giờ nhìn đứng yên.
+		const saccade = new THREE.Vector3()
+		const lookGoal = new THREE.Vector3()
+		let nextSaccadeAt = 1
 
 		// Procedural body motion: small additive offsets on normalized bones, applied after the
 		// animation mixer so it layers on top of any clip (or on the rest pose if none plays).
@@ -776,6 +583,7 @@ function Mirai_chat() {
 		const offsetEuler = new THREE.Euler()
 		const offsetQuaternion = new THREE.Quaternion()
 		let thinkingWeight = 0
+		let restPoseWeight = 1
 		let speakingWeight = 0
 
 		const applyBoneOffset = (vrm, boneName, x, y, z) => {
@@ -809,6 +617,9 @@ function Mirai_chat() {
 			const isSpeaking = Boolean(audio && !audio.paused && !audio.ended && !audio.muted)
 			speakingWeight += ((isSpeaking ? 1 : 0) - speakingWeight) * blend
 
+			// Không có clip nào đang chạy (tải lỗi / chưa tải xong): hạ tay xuống thay vì đứng dang tay kiểu T-pose.
+			restPoseWeight += ((currentAnimationActionRef.current ? 0 : 1) - restPoseWeight) * blend
+
 			const breath = Math.sin(time * 1.7)
 			const nodAge = (performance.now() - nodStartRef.current) / 1000
 			const nod = nodAge >= 0 && nodAge < 0.7 ? Math.sin((nodAge / 0.7) * Math.PI) * 0.12 : 0
@@ -818,6 +629,10 @@ function Mirai_chat() {
 			const headYaw = Math.sin(time * 0.5) * 0.04 + thinkingWeight * 0.15
 			const headRoll = Math.sin(time * 0.37) * 0.02 + thinkingWeight * 0.1
 
+			applyBoneOffset(vrm, 'leftUpperArm', 0, 0, -REST_ARM_DROP * restPoseWeight)
+			applyBoneOffset(vrm, 'rightUpperArm', 0, 0, REST_ARM_DROP * restPoseWeight)
+			applyBoneOffset(vrm, 'leftLowerArm', 0, 0, -REST_ELBOW_BEND * restPoseWeight)
+			applyBoneOffset(vrm, 'rightLowerArm', 0, 0, REST_ELBOW_BEND * restPoseWeight)
 			applyBoneOffset(vrm, 'spine', breath * 0.006, 0, 0)
 			applyBoneOffset(vrm, 'chest', breath * 0.012, Math.sin(time * 0.5) * 0.01, 0)
 			applyBoneOffset(vrm, 'upperChest', breath * 0.008, 0, 0)
@@ -869,7 +684,12 @@ function Mirai_chat() {
 			const delta = Math.min(timerRef.current.getDelta(), 0.1)
 			elapsedTime += delta
 
-			lookTarget.position.lerp(lookDesiredPosition, 1 - Math.exp(-6 * delta))
+			if (elapsedTime >= nextSaccadeAt) {
+				saccade.set((Math.random() - 0.5) * 0.12, (Math.random() - 0.5) * 0.07, 0)
+				nextSaccadeAt = elapsedTime + 0.5 + Math.random() * 2.5
+			}
+			lookGoal.copy(lookDesiredPosition).add(saccade)
+			lookTarget.position.lerp(lookGoal, 1 - Math.exp(-8 * delta))
 
 			const positions = particleGeometry.attributes.position
 			for (let i = 0; i < PARTICLE_COUNT; i += 1) {
@@ -905,6 +725,12 @@ function Mirai_chat() {
 							nextBlinkAt = elapsedTime + 2 + Math.random() * 4
 						}
 					}
+				}
+				// Nụ cười nền: chỉ chạy khi không có cảm xúc nào đang giữ (setAnimationExpression quản lý lúc đó).
+				const smileTarget = emotionActiveRef.current ? 0 : IDLE_SMILE + Math.sin(elapsedTime * 0.4) * 0.03
+				idleSmile += (smileTarget - idleSmile) * (1 - Math.exp(-2 * delta))
+				if (!emotionActiveRef.current && currentVrmRef.current.expressionManager) {
+					currentVrmRef.current.expressionManager.setValue('happy', idleSmile)
 				}
 				currentVrmRef.current.update(delta)
 			}
@@ -962,6 +788,7 @@ function Mirai_chat() {
 	useEffect(() => {
 		return () => {
 			chatAbortRef.current?.abort()
+			speechAbortRef.current?.abort()
 
 			if (emotionTimeoutRef.current) {
 				window.clearTimeout(emotionTimeoutRef.current)
@@ -1001,18 +828,6 @@ function Mirai_chat() {
 		const url = URL.createObjectURL(file)
 		await loadVrmFromUrl({ url, revokeAfterLoad: true })
 		event.target.value = ''
-	}
-
-	const resolveAudioSrc = (audioData) => {
-		if (typeof audioData !== 'string' || !audioData.trim()) {
-			return null
-		}
-
-		if (/^(https?:|data:|blob:)/i.test(audioData)) {
-			return audioData
-		}
-
-		return `data:audio/mpeg;base64,${audioData}`
 	}
 
 	const resolveLipSyncData = async (lipSyncPayload) => {
@@ -1185,9 +1000,8 @@ function Mirai_chat() {
 			)
 
 			nodStartRef.current = performance.now()
-			const emotion = EMOTION_EXPRESSIONS.includes(reply.emotion)
-				? reply.emotion
-				: detectEmotion(reply.text)
+			// Backend quyết định cảm xúc; null nghĩa là không có tín hiệu rõ nên giữ nguyên nét mặt.
+			const emotion = EMOTION_EXPRESSIONS.includes(reply.emotion) ? reply.emotion : null
 			if (emotion) {
 				setAnimationExpression(emotion)
 				if (emotionTimeoutRef.current) {
@@ -1201,6 +1015,16 @@ function Mirai_chat() {
 
 			if (reply.audio) {
 				void playAudioWithLipSync(reply.audio, reply.lipSync)
+			} else {
+				// Chữ đã hiện; lấy audio sau để không bắt người dùng chờ TTS cùng với LLM.
+				speechAbortRef.current?.abort()
+				const speechController = new AbortController()
+				speechAbortRef.current = speechController
+				void fetchSpeech(reply.text, { signal: speechController.signal }).then((speech) => {
+					if (speech && !speechController.signal.aborted) {
+						void playAudioWithLipSync(speech.audio, speech.lipSync)
+					}
+				})
 			}
 		} catch (error) {
 			if (error?.name === 'AbortError') {
@@ -1252,6 +1076,7 @@ function Mirai_chat() {
 
 	const handleClearConversation = () => {
 		chatAbortRef.current?.abort()
+		speechAbortRef.current?.abort()
 		setMessages([GREETING_MESSAGE])
 	}
 
@@ -1378,7 +1203,7 @@ function Mirai_chat() {
 							<span className='mute-slide-label'>Clear</span>
 						</button>
 						<div style={{ display: 'flex', alignItems: 'center' }}>
-						<div className='status-color' style={{ backgroundColor: online_status === 'Online' ? '#22c55e' : '#ef4444' }} />
+						<div className='status-color' style={{ backgroundColor: STATUS_COLORS[online_status] }} />
 						<div className='status-text'>{online_status}</div>
 						</div>
 					</div>

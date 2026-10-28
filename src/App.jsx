@@ -35,10 +35,11 @@ function App() {
 
   return (
     <>
-      <section id="main">
+      <div id="main">
+        <a className="skip-link" href="#content">Skip to content</a>
         <div className="container">
-          <div className="header">
-            <h1 className="title">MirAI</h1>
+          <header className="header">
+            <div className="title">MirAI</div>
             <nav className="nav" aria-label="Main">
               {NAV_ITEMS.map((item) => (
                 <NavLink key={item.path} to={item.path} end className="nav-btn">
@@ -46,8 +47,8 @@ function App() {
                 </NavLink>
               ))}
             </nav>
-          </div>
-          <div className="layout">
+          </header>
+          <main className="layout" id="content" tabIndex={-1}>
             <Suspense fallback={<div className="route-loading" role="status">Loading...</div>}>
               <Routes>
                 <Route path="/" element={<Home onNavigate={handleNavigate} />} />
@@ -56,9 +57,9 @@ function App() {
                 <Route path="/games" element={<MusicGameIndex />} />
               </Routes>
             </Suspense>
-          </div>
+          </main>
         </div>
-      </section>
+      </div>
     </>
   )
 }

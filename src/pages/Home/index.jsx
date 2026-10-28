@@ -46,6 +46,12 @@ const Banner = [
 function Home({ onNavigate }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const carouselRef = useRef(null);
+    const [reducedMotion] = useState(
+        () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    );
+    // Tự chạy mặc định, trừ khi người dùng bật "giảm chuyển động"; luôn có nút tạm dừng (WCAG 2.2.2).
+    const [isPlaying, setIsPlaying] = useState(!reducedMotion);
+    const [isInteracting, setIsInteracting] = useState(false);
 
     // Navigate to the next slide
     const nextSlide = useCallback(() => {
@@ -61,15 +67,19 @@ function Home({ onNavigate }) {
         );
     };
 
-    // Auto-scroll effect (changes slide every 5 seconds)
+    // Auto-scroll effect (changes slide every 5 seconds); paused on hover/focus or when turned off
     useEffect(() => {
+        if (!isPlaying || isInteracting) {
+            return undefined;
+        }
+
         const interval = setInterval(() => {
             nextSlide();
-        }, 5000); 
+        }, 5000);
 
         // Clear the interval if the component unmounts to prevent memory leaks
         return () => clearInterval(interval);
-    }, [nextSlide]);
+    }, [nextSlide, isPlaying, isInteracting]);
 
     // Scroll the container when currentIndex changes
     useEffect(() => {
@@ -77,15 +87,24 @@ function Home({ onNavigate }) {
             const scrollAmount = carouselRef.current.clientWidth * currentIndex;
             carouselRef.current.scrollTo({
                 left: scrollAmount,
-                behavior: 'smooth'
+                behavior: reducedMotion ? 'auto' : 'smooth'
             });
         }
-    }, [currentIndex]);
+    }, [currentIndex, reducedMotion]);
 
     return (
-        <main className="home-page">
+        <div className="home-page">
             <section className="home-hero">
-                <div className="home-carousel">
+                <div
+                    className="home-carousel"
+                    role="region"
+                    aria-roledescription="carousel"
+                    aria-label="Featured projects"
+                    onMouseEnter={() => setIsInteracting(true)}
+                    onMouseLeave={() => setIsInteracting(false)}
+                    onFocus={() => setIsInteracting(true)}
+                    onBlur={() => setIsInteracting(false)}
+                >
                     {/* Attach the ref here */}
                     <div className="home-carousel__slide" ref={carouselRef}>
                         {Banner.map((banner) => (
@@ -101,6 +120,15 @@ function Home({ onNavigate }) {
                             </div>
                         ))}
                     </div>
+
+                    <button
+                        type="button"
+                        className="home-carousel-btn pause"
+                        onClick={() => setIsPlaying((playing) => !playing)}
+                        aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
+                    >
+                        {isPlaying ? '\u275A\u275A' : '\u25B6'}
+                    </button>
 
                     {/* Navigation Arrows */}
                     <button className="home-carousel-btn prev" onClick={prevSlide} aria-label="Previous slide">
@@ -125,7 +153,7 @@ function Home({ onNavigate }) {
 
                 <div className="home-copy">
                     <p className="home-eyebrow">MirAI interactive demo</p>
-                    <h2>One place for chat, avatar, and rhythm.</h2>
+                    <h1>One place for chat, avatar, and rhythm.</h1>
                     <p className="home-lead">
                         This index brings the main MirAI experiences together in a single hub: talk to the assistant,
                         inspect the project details, or launch the music prototype.
@@ -153,7 +181,7 @@ function Home({ onNavigate }) {
                     </article>
                 ))}
             </section>
-        </main>
+        </div>
     );
 }
 
