@@ -43,7 +43,13 @@ mirai-chat/
 │   │   └── VRMLoadingScreen.jsx
 │   ├── pages/
 │   │   ├── Home/              # Landing hub
-│   │   ├── Mirai_chat/        # 3D viewer + chat UI + lip-sync + blendshape debug
+│   │   ├── Mirai_chat/        # Chat page, split by responsibility:
+│   │   │   ├── Mirai_chat.jsx     #   wires the hooks and panels together
+│   │   │   ├── useVrmAvatar.js    #   Three.js scene, VRM loading, animations, expressions
+│   │   │   ├── useSpeechPlayback.js #  audio + lip-sync cues -> mouth blend shapes
+│   │   │   ├── useChatSession.js  #   messages, send/retry/clear, localStorage
+│   │   │   ├── ChatPanel.jsx, BlendShapeDebugPanel.jsx
+│   │   │   └── avatarConfig.js, proceduralMotion.js, sceneSetup.js, gestures.js, ...
 │   │   ├── About/             # Project story, model & AI details, deploy notes
 │   │   └── Game/MusicGame/    # Came Soon placeholder + beatmap play index
 │   └── assets/game/MiraiMusic/# stage.json + beatmap JSON
@@ -90,12 +96,12 @@ VITE_MIRAI_MAX_WORDS=40              # word-limit hint sent in the request body
 
 ### Backend Contract (summary)
 
-- `POST /chat` — request `{ message, history, model, max_words, max_tokens }`, response `{ text, reply, emotion, audio, audioFormat, lipSync, sources, meta }`
-- `POST /tts` — request `{ text }`, response `{ audio, audioFormat, audioError, lipSync }`; the frontend calls it after showing the reply so text is not delayed by speech synthesis (`/chat` also accepts `tts: false`)
-- `GET /health` — returns HTTP 200 when online, 503 while the model is loading
-- `GET /history` (optional) — returns `{ messages: [...] }`
+- `POST /chat` - request `{ message, history, model, max_words, max_tokens, tts }`, response `{ text, reply, emotion, audio, audioFormat, audioError, lipSync, sources, meta }`
+- `POST /tts` - request `{ text }`, response `{ audio, audioFormat, audioError, lipSync }`; the frontend calls it after showing the reply so text is not delayed by speech synthesis
+- `GET /health` - HTTP 200 when online, 503 while the model is loading
+- `GET /api/models` - model keys the Worker accepts
 
-See [SETUP_SERVER.md](SETUP_SERVER.md) for the full spec and troubleshooting.
+[SETUP_SERVER.md](SETUP_SERVER.md) describes what the browser sees; the full backend contract lives in the backend repo (`Mirai/docs/API.md`).
 
 ## Deploying to Cloudflare
 

@@ -153,6 +153,37 @@ export const GESTURES = {
 		],
 	},
 
+	// Ngại ngùng: cúi đầu, quay mặt tránh đi, co vai và khép tay vào người.
+	shy: {
+		duration: 3.2,
+		fadeIn: 0.45,
+		fadeOut: 0.9,
+		tracks: [
+			track('head', 'x', [[0, 0], [0.6, 0.15], [1.6, 0.12], [3.2, 0]]),
+			track('neck', 'x', [[0, 0], [0.6, 0.06], [1.6, 0.05], [3.2, 0]]),
+			track('head', 'y', [[0, 0], [0.7, -0.14], [1.7, -0.1], [3.2, 0]]),
+			track('head', 'z', [[0, 0], [0.7, 0.1], [1.7, 0.07], [3.2, 0]]),
+			track('chest', 'x', [[0, 0], [0.7, 0.045], [1.7, 0.035], [3.2, 0]]),
+			...mirrored('leftShoulder', 'rightShoulder', 'z', [[0, 0], [0.5, 0.09], [1.7, 0.07], [3.2, 0]]),
+			...mirrored('leftUpperArm', 'rightUpperArm', 'z', [[0, 0], [0.6, -0.06], [1.7, -0.05], [3.2, 0]]),
+		],
+	},
+
+	// Suy nghĩ: nghiêng đầu, hơi quay sang một bên và ngước lên, gật nhẹ như đang cân nhắc.
+	thinking: {
+		duration: 3.6,
+		fadeIn: 0.5,
+		fadeOut: 0.9,
+		tracks: [
+			track('head', 'z', [[0, 0], [0.8, -0.12], [2.4, -0.1], [3.6, 0]]),
+			track('head', 'y', [[0, 0], [0.8, 0.14], [2.4, 0.12], [3.6, 0]]),
+			track('head', 'x', [[0, 0], [0.8, -0.07], [1.6, -0.03], [2.1, -0.07], [2.6, -0.04], [3.6, 0]]),
+			track('neck', 'x', [[0, 0], [0.8, -0.03], [2.4, -0.03], [3.6, 0]]),
+			track('chest', 'y', [[0, 0], [0.9, 0.04], [2.4, 0.035], [3.6, 0]]),
+			track('spine', 'z', [[0, 0], [0.9, -0.02], [2.4, -0.018], [3.6, 0]]),
+		],
+	},
+
 	// Vẫy tay chào bằng tay phải của nhân vật: giơ tay lên ngang đầu, cẳng tay đứng, vẫy qua lại.
 	wave: {
 		keep: true, // không bị cử chỉ cảm xúc đến sau làm hạ tay giữa chừng
